@@ -126,6 +126,8 @@ export default function Home() {
   const [applying, setApplying] = useState(false)
   const [correctedOutput, setCorrectedOutput] = useState<string | null>(null)
   const [reviewCountdown, setReviewCountdown] = useState<number | null>(null)
+  const [reviewRound, setReviewRound] = useState(0)
+  const [contentStats, setContentStats] = useState<{words: number, sections: number, hasKC: boolean, callouts: number} | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [reviewOutput, setReviewOutput] = useState<string | null>(null)
   const [output, setOutput] = useState<string | null>(null)
@@ -176,6 +178,8 @@ export default function Home() {
     setReviewOutput(null)
     setCorrectedOutput(null)
     setReviewCountdown(null)
+    setReviewRound(0)
+    setContentStats(null)
   }
 
   const handleFieldChange = (id: string, value: string) => {
@@ -347,11 +351,23 @@ export default function Home() {
   }
 
 
-  const handleReview = async () => {
-    if (!output || !activeWorkflow) return
-    setReviewOutput(null)
 
-    // 60-second cooldown to avoid rate limit
+  const calcContentStats = (text: string) => {
+    const words = text.trim().split(/\s+/).length
+    const sections = (text.match(/^##? /gm) || []).length
+    const hasKC = /knowledge check/i.test(text)
+    const callouts = (text.match(/\*\*(Note|In practice|Think of it this way):/g) || []).length
+    return { words, sections, hasKC, callouts }
+  }
+
+  const handleReview = async () => {
+    const contentToReview = correctedOutput || output
+    if (!contentToReview || !activeWorkflow) return
+    setReviewOutput(null)
+    setReviewRound(r => r + 1)
+    setContentStats(calcContentStats(contentToReview))
+
+    // 120-second cooldown to avoid rate limit
     setReviewCountdown(120)
     await new Promise<void>(resolve => {
       let seconds = 120
@@ -372,7 +388,7 @@ export default function Home() {
       const res = await fetch('/api/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: output, workflowId: activeWorkflow }),
+        body: JSON.stringify({ content: contentToReview, workflowId: activeWorkflow }),
       })
 
       if (!res.ok) throw new Error('Review failed')
@@ -400,7 +416,8 @@ export default function Home() {
 
 
   const handleApply = async () => {
-    if (!output || !reviewOutput || !activeWorkflow) return
+    const baseContent = correctedOutput || output
+    if (!baseContent || !reviewOutput || !activeWorkflow) return
     setApplying(true)
     setCorrectedOutput(null)
 
@@ -408,7 +425,7 @@ export default function Home() {
       const res = await fetch('/api/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: output, reviewOutput, workflowId: activeWorkflow }),
+        body: JSON.stringify({ content: baseContent, reviewOutput, workflowId: activeWorkflow }),
       })
 
       if (!res.ok) throw new Error('Apply failed')
@@ -446,6 +463,8 @@ export default function Home() {
     setReviewOutput(null)
     setCorrectedOutput(null)
     setReviewCountdown(null)
+    setReviewRound(0)
+    setContentStats(null)
   }
 
   const handleHistoryItem = (item: HistoryItem) => {
@@ -747,7 +766,7 @@ export default function Home() {
             <div className="review-section">
               <div className="review-header">
                 <div>
-                  <div className="review-title">Quality review</div>
+                  <div className="review-title">Quality review{reviewRound > 1 ? ` — round ${reviewRound}` : ''}</div>
                   <div className="review-sub">Style compliance, KB verification, and SME flags — powered by the Review Assistant</div>
                 </div>
                 {!reviewing && !reviewOutput && reviewCountdown === null && (
@@ -766,28 +785,53 @@ export default function Home() {
                   </div>
                 )}
                 {reviewCountdown !== null && (
-                  <div className="review-countdown">
-                    <div className="countdown-ring">
-                      <svg width="52" height="52" viewBox="0 0 52 52">
-                        <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(167,149,199,0.15)" strokeWidth="4"/>
-                        <circle
-                          cx="26" cy="26" r="22" fill="none"
-                          stroke="#A795C7" strokeWidth="4"
-                          strokeLinecap="round"
-                          strokeDasharray={`${2 * Math.PI * 22}`}
-                          strokeDashoffset={`${2 * Math.PI * 22 * (1 - reviewCountdown / 120)}`}
-                          transform="rotate(-90 26 26)"
-                          style={{ transition: 'stroke-dashoffset 1s linear' }}
-                        />
-                        <text x="26" y="31" textAnchor="middle" fill="#A795C7" fontSize="13" fontWeight="700" fontFamily="Poppins, sans-serif">
-                          {reviewCountdown}
-                        </text>
-                      </svg>
+                  <div className="review-countdown-full">
+                    <div className="review-countdown-top">
+                      <div className="countdown-ring">
+                        <svg width="64" height="64" viewBox="0 0 64 64">
+                          <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(167,149,199,0.15)" strokeWidth="5"/>
+                          <circle
+                            cx="32" cy="32" r="27" fill="none"
+                            stroke="#A795C7" strokeWidth="5"
+                            strokeLinecap="round"
+                            strokeDasharray={`${2 * Math.PI * 27}`}
+                            strokeDashoffset={`${2 * Math.PI * 27 * (reviewCountdown / 120)}`}
+                            transform="rotate(-90 32 32)"
+                            style={{ transition: 'stroke-dashoffset 1s linear' }}
+                          />
+                          <text x="32" y="38" textAnchor="middle" fill="#A795C7" fontSize="16" fontWeight="700" fontFamily="Poppins, sans-serif">
+                            {reviewCountdown}
+                          </text>
+                        </svg>
+                      </div>
+                      <div className="countdown-text">
+                        <div className="countdown-label">Preparing review {reviewRound > 0 ? `— round ${reviewRound}` : ''}…</div>
+                        <div className="countdown-sub">Review starts in {reviewCountdown} seconds. In the meantime, see what's new with the University Assistant ↘</div>
+                      </div>
                     </div>
-                    <div className="countdown-text">
-                      <div className="countdown-label">Preparing review…</div>
-                      <div className="countdown-sub">Waiting {reviewCountdown}s — review starts automatically</div>
-                    </div>
+                    {contentStats && (
+                      <div className="content-stats">
+                        <div className="stat-item">
+                          <span className="stat-value">{contentStats.words.toLocaleString()}</span>
+                          <span className="stat-label">words</span>
+                        </div>
+                        <div className="stat-divider"/>
+                        <div className="stat-item">
+                          <span className="stat-value">{contentStats.sections}</span>
+                          <span className="stat-label">sections</span>
+                        </div>
+                        <div className="stat-divider"/>
+                        <div className="stat-item">
+                          <span className="stat-value">{contentStats.hasKC ? '✓' : '✗'}</span>
+                          <span className={`stat-label ${contentStats.hasKC ? 'stat-ok' : 'stat-warn'}`}>knowledge check</span>
+                        </div>
+                        <div className="stat-divider"/>
+                        <div className="stat-item">
+                          <span className="stat-value">{contentStats.callouts}</span>
+                          <span className="stat-label">callouts</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               {reviewOutput && !reviewing && !applying && (
