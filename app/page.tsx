@@ -127,7 +127,7 @@ export default function Home() {
   const [correctedOutput, setCorrectedOutput] = useState<string | null>(null)
   const [reviewCountdown, setReviewCountdown] = useState<number | null>(null)
   const [reviewRound, setReviewRound] = useState(0)
-  const [contentStats, setContentStats] = useState<{words: number, sections: number, hasKC: boolean, callouts: number} | null>(null)
+  const [contentStats, setContentStats] = useState<{words: number, readingTime: number, sections: number, hasKC: boolean, hasObjectives: boolean, hasPrivatePreview: boolean, noteCallouts: number, practiceCallouts: number, analogyCallouts: number, totalCallouts: number, hasProcedures: boolean, paragraphs: number, avgParaWords: number} | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [reviewOutput, setReviewOutput] = useState<string | null>(null)
   const [output, setOutput] = useState<string | null>(null)
@@ -353,11 +353,21 @@ export default function Home() {
 
 
   const calcContentStats = (text: string) => {
-    const words = text.trim().split(/\s+/).length
-    const sections = (text.match(/^##? /gm) || []).length
+    const wordList = text.trim().split(/\s+/)
+    const words = wordList.length
+    const readingTime = Math.max(1, Math.round(words / 200))
+    const sections = (text.match(/^#{1,2} /gm) || []).length
     const hasKC = /knowledge check/i.test(text)
-    const callouts = (text.match(/\*\*(Note|In practice|Think of it this way):/g) || []).length
-    return { words, sections, hasKC, callouts }
+    const hasObjectives = /after completing this lesson/i.test(text)
+    const hasPrivatePreview = /private preview/i.test(text)
+    const noteCallouts = (text.match(/\*\*Note:/g) || []).length
+    const practiceCallouts = (text.match(/\*\*In practice:/g) || []).length
+    const analogyCallouts = (text.match(/\*\*Think of it this way:/g) || []).length
+    const totalCallouts = noteCallouts + practiceCallouts + analogyCallouts
+    const hasProcedures = /^\d+\./m.test(text)
+    const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 80).length
+    const avgParaWords = paragraphs > 0 ? Math.round(words / paragraphs) : 0
+    return { words, readingTime, sections, hasKC, hasObjectives, hasPrivatePreview, noteCallouts, practiceCallouts, analogyCallouts, totalCallouts, hasProcedures, paragraphs, avgParaWords }
   }
 
   const handleReview = async () => {
@@ -815,25 +825,59 @@ export default function Home() {
                       </div>
                     </div>
                     {contentStats && (
-                      <div className="content-stats">
-                        <div className="stat-item">
-                          <span className="stat-value">{contentStats.words.toLocaleString()}</span>
-                          <span className="stat-label">words</span>
+                      <div className="content-stats-grid">
+                        <div className="stats-row">
+                          <div className="stat-card">
+                            <span className="stat-value">{contentStats.words.toLocaleString()}</span>
+                            <span className="stat-label">words</span>
+                          </div>
+                          <div className="stat-card">
+                            <span className="stat-value">~{contentStats.readingTime} min</span>
+                            <span className="stat-label">reading time</span>
+                          </div>
+                          <div className="stat-card">
+                            <span className="stat-value">{contentStats.sections}</span>
+                            <span className="stat-label">sections</span>
+                          </div>
+                          <div className="stat-card">
+                            <span className="stat-value">{contentStats.paragraphs}</span>
+                            <span className="stat-label">paragraphs</span>
+                          </div>
+                          <div className="stat-card">
+                            <span className="stat-value">{contentStats.avgParaWords}</span>
+                            <span className="stat-label">words / para</span>
+                          </div>
                         </div>
-                        <div className="stat-divider"/>
-                        <div className="stat-item">
-                          <span className="stat-value">{contentStats.sections}</span>
-                          <span className="stat-label">sections</span>
-                        </div>
-                        <div className="stat-divider"/>
-                        <div className="stat-item">
-                          <span className="stat-value">{contentStats.hasKC ? '✓' : '✗'}</span>
-                          <span className={`stat-label ${contentStats.hasKC ? 'stat-ok' : 'stat-warn'}`}>knowledge check</span>
-                        </div>
-                        <div className="stat-divider"/>
-                        <div className="stat-item">
-                          <span className="stat-value">{contentStats.callouts}</span>
-                          <span className="stat-label">callouts</span>
+                        <div className="stats-row">
+                          <div className={`stat-card stat-flag ${contentStats.hasObjectives ? 'flag-ok' : 'flag-warn'}`}>
+                            <span className="stat-value">{contentStats.hasObjectives ? '✓' : '✗'}</span>
+                            <span className="stat-label">objectives</span>
+                          </div>
+                          <div className={`stat-card stat-flag ${contentStats.hasKC ? 'flag-ok' : 'flag-warn'}`}>
+                            <span className="stat-value">{contentStats.hasKC ? '✓' : '✗'}</span>
+                            <span className="stat-label">knowledge check</span>
+                          </div>
+                          <div className={`stat-card stat-flag ${contentStats.hasProcedures ? 'flag-ok' : 'flag-neutral'}`}>
+                            <span className="stat-value">{contentStats.hasProcedures ? '✓' : '—'}</span>
+                            <span className="stat-label">procedures</span>
+                          </div>
+                          <div className={`stat-card stat-flag ${contentStats.hasPrivatePreview ? 'flag-ok' : 'flag-neutral'}`}>
+                            <span className="stat-value">{contentStats.hasPrivatePreview ? '✓' : '—'}</span>
+                            <span className="stat-label">preview disclosed</span>
+                          </div>
+                          <div className="stat-card">
+                            <span className="stat-value">{contentStats.totalCallouts}</span>
+                            <span className="stat-label">
+                              callouts
+                              {contentStats.totalCallouts > 0 && (
+                                <span className="callout-breakdown">
+                                  {contentStats.noteCallouts > 0 && ` ${contentStats.noteCallouts}×note`}
+                                  {contentStats.practiceCallouts > 0 && ` ${contentStats.practiceCallouts}×practice`}
+                                  {contentStats.analogyCallouts > 0 && ` ${contentStats.analogyCallouts}×analogy`}
+                                </span>
+                              )}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     )}
