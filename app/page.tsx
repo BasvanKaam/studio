@@ -123,6 +123,8 @@ export default function Home() {
   const [generating, setGenerating] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [reviewing, setReviewing] = useState(false)
+  const [applying, setApplying] = useState(false)
+  const [correctedOutput, setCorrectedOutput] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [reviewOutput, setReviewOutput] = useState<string | null>(null)
   const [output, setOutput] = useState<string | null>(null)
