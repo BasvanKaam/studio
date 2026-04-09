@@ -247,26 +247,3 @@ Natural spoken language throughout. No "Now I'm going to show you." No filler ph
 }
 
 // Audit block appended to every prompt
-export const AUDIT_INSTRUCTION = `
-
----
-
-VERIFICATION AND AUDIT REQUIREMENTS:
-
-After completing the main output, add this exact section — no extra headings, no duplication:
-
-## Quality audit
-
-**KB verification:**
-For every Nerdio-specific claim, UI path, or product behaviour:
-- Search nmehelp.getnerdio.com or nmmhelp.getnerdio.com
-- ✅ VERIFIED — [claim] | [KB article title]
-- ❌ INCORRECT — [claim] | Correction: [correct info]
-- ❓ NOT FOUND — [claim] | SME review required
-
-**Style compliance:**
-- ❌ FAIL — [rule] | OLD: "[text]" → NEW: "[corrected]"
-- If no issues: "All style checks passed."
-
-**SME review required:**
-List claims needing expert confirmation before publication.`
