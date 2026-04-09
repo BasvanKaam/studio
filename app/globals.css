@@ -1076,3 +1076,16 @@ svg { flex-shrink: 0; }
   background: var(--border);
   flex-shrink: 0;
 }
+
+/* ── Word count ── */
+.word-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
