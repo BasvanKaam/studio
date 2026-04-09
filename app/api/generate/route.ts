@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
                 // Signal when web search starts
                 if (event.type === 'content_block_start') {
                   if (event.content_block?.type === 'tool_use' && event.content_block?.name === 'web_search') {
-                    controller.enqueue(encoder.encode('\n[Searching Nerdio documentation…]\n'))
+                    controller.enqueue(encoder.encode('__SEARCHING__'))
                   }
                 }
               } catch {
