@@ -916,9 +916,22 @@ export default function Home() {
           )}
 
           {output && !generating && !error && (
-            <div className="msg msg-success">
-              <span className="msg-icon">✓</span>
-              <span>Content generated successfully. Download your .docx above, or select Start over to generate something new.</span>
+            <div className="msg msg-success" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="msg-icon">✓</span>
+                <span>Content generated. Apply corrections from the audit above, or run a full quality review below.</span>
+              </span>
+              {!reviewOutput && !applying && !correctedOutput && (
+                <button className="btn-apply" style={{ flexShrink: 0 }} onClick={handleApply}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20,6 9,17 4,12"/>
+                  </svg>
+                  Apply audit corrections
+                </button>
+              )}
+              {correctedOutput && !reviewOutput && (
+                <span className="apply-done">✓ Audit corrections applied</span>
+              )}
             </div>
           )}
 
