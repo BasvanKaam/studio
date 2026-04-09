@@ -368,12 +368,15 @@ export default function Home() {
   ]
 
   useEffect(() => {
-    if (reviewCountdown === null) return
+    if (reviewCountdown === null) {
+      setFunFactIndex(0)
+      return
+    }
     const interval = setInterval(() => {
-      setFunFactIndex(i => (i + 1) % FUN_FACTS.length)
+      setFunFactIndex(i => (i + 1) % 10)
     }, 5000)
     return () => clearInterval(interval)
-  }, [reviewCountdown])
+  }, [reviewCountdown !== null])
 
   const calcContentStats = (text: string) => {
     const wordList = text.trim().split(/\s+/)
