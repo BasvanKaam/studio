@@ -706,6 +706,11 @@ export default function Home() {
                 <span className="output-label">
                   {generating ? 'Generating…' : correctedOutput ? `${workflow?.title || 'Output'} — corrected and ready` : `${workflow?.title || 'Output'} — ready`}
                 </span>
+                {output && (
+                  <span className="word-count">
+                    {(correctedOutput || output).trim().split(/\s+/).length.toLocaleString()} words
+                  </span>
+                )}
                 <div className="header-actions">
                   {!generating && correctedOutput && (
                     <button className="btn-download" onClick={handleDownload} disabled={downloading}>
