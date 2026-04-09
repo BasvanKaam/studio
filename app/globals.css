@@ -21,8 +21,8 @@
   --text-muted:  rgba(255,255,255,0.55);
   --border:      rgba(30,157,184,0.45);
   --border-hi:   rgba(30,157,184,0.80);
-  --card:        rgba(2,28,40,0.75);
-  --card-hi:     rgba(4,40,56,0.92);
+  --card:        rgba(4,40,56,0.68);
+  --card-hi:     rgba(6,50,70,0.85);
   --success:     #34d399;
   --danger:      #f87171;
   --warning:     #fbbf24;
@@ -35,7 +35,7 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: 'Poppins', sans-serif;
-  background: #126080;
+  background: #1a7090;
   color: var(--text);
   min-height: 100vh;
   line-height: 1.75;
@@ -285,7 +285,7 @@ body::before {
 
 .field-select,
 .field-input {
-  background: rgba(2,20,35,0.70);
+  background: rgba(4,35,55,0.60);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
@@ -317,7 +317,7 @@ body::before {
 .field-input::placeholder { color: var(--text-muted); }
 
 .field-textarea {
-  background: rgba(2,20,35,0.70);
+  background: rgba(4,35,55,0.60);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
@@ -435,7 +435,7 @@ body::before {
   justify-content: space-between;
   padding: 18px 28px;
   border-bottom: 1px solid var(--border);
-  background: rgba(2,20,35,0.75);
+  background: rgba(4,35,55,0.65);
   gap: 14px;
 }
 
