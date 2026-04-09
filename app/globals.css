@@ -851,8 +851,8 @@ svg { flex-shrink: 0; }
 }
 
 .chat-popup {
-  width: 420px;
-  height: 620px;
+  width: 780px;
+  height: 820px;
   background: var(--navy);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
