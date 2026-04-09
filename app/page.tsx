@@ -678,10 +678,32 @@ export default function Home() {
                     </button>
                   )}
                   {!generating && correctedOutput && (
-                    <button className="btn-download-original" onClick={() => {
-                      const orig = output
-                      setCorrectedOutput(null)
-                      setTimeout(() => { handleDownload(); setCorrectedOutput(orig) }, 50)
+                    <button className="btn-download-original" onClick={async () => {
+                      if (!workflow || !activeWorkflow) return
+                      setDownloading(true)
+                      try {
+                        const topic = fields.topic || fields.coursetitle || workflow.title
+                        const filename = `Nerdio_${workflow.title.replace(/\s+/g, '_')}_${topic.slice(0, 40).replace(/[^a-zA-Z0-9]/g, '_')}_original`
+                        const res = await fetch('/api/download', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ content: output, workflowId: activeWorkflow, fields, filename }),
+                        })
+                        if (!res.ok) throw new Error('Download failed')
+                        const blob = await res.blob()
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `${filename}.docx`
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                        URL.revokeObjectURL(url)
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Download failed')
+                      } finally {
+                        setDownloading(false)
+                      }
                     }} disabled={downloading}>
                       Download original
                     </button>
@@ -819,16 +841,21 @@ export default function Home() {
           title="Nerdio University Assistant"
         >
           {chatOpen ? (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           ) : (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
+            <>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+                <path d="M7 8h.01M12 8h.01M17 8h.01"/>
+              </svg>
+              <span className="chat-fab-label">University Assistant</span>
+            </>
           )}
-          {!chatOpen && <span className="chat-fab-label">University Assistant</span>}
         </button>
       </div>
     </div>
