@@ -1002,3 +1002,77 @@ svg { flex-shrink: 0; }
   font-size: 0.78rem;
   color: var(--text-muted);
 }
+
+/* ── Search indicator in output ── */
+.output-content .search-indicator,
+.review-output .search-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--teal);
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin: 4px 0;
+  opacity: 0.85;
+}
+
+/* ── Countdown with stats ── */
+.review-countdown-full {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 28px;
+  background: rgba(167,149,199,0.06);
+  border-top: 1px solid var(--border);
+  animation: fadeUp 0.22s ease;
+}
+
+.review-countdown-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.content-stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: rgba(4,40,56,0.40);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 24px;
+  gap: 4px;
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-ok { color: var(--success) !important; }
+.stat-warn { color: var(--warning) !important; }
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--border);
+  flex-shrink: 0;
+}
