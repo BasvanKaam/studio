@@ -708,3 +708,98 @@ svg { flex-shrink: 0; }
 .btn-clear-history:hover svg { color: var(--danger); opacity: 1; }
 .btn-download:hover:not(:disabled) svg { color: var(--navy-deep); opacity: 1; }
 .upload-label svg { color: var(--teal); opacity: 1; }
+
+/* ── Quality review section ── */
+.review-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--purple);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 28px;
+  animation: fadeUp 0.25s ease;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(167,149,199,0.08);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.review-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--purple);
+  margin-bottom: 4px;
+}
+
+.review-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.btn-review {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 22px;
+  background: transparent;
+  border: 1.5px solid var(--purple);
+  border-radius: 10px;
+  color: var(--purple);
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-review:hover {
+  background: var(--purple);
+  color: var(--navy-deep);
+  box-shadow: 0 0 20px rgba(167,149,199,0.3);
+}
+
+.btn-review-again {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-review-again:hover { border-color: var(--purple); color: var(--purple); }
+
+.review-running {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--purple);
+  font-size: 0.9rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.review-output {
+  padding: 28px 32px;
+  font-size: 0.9rem;
+  line-height: 1.85;
+  color: var(--text);
+  white-space: pre-wrap;
+  max-height: 640px;
+  overflow-y: auto;
+  font-family: 'Poppins', sans-serif;
+}
+.review-output::-webkit-scrollbar { width: 6px; }
+.review-output::-webkit-scrollbar-thumb { background: rgba(167,149,199,0.25); border-radius: 3px; }
