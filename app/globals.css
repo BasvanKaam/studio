@@ -523,3 +523,167 @@ svg { flex-shrink: 0; }
 .output-label svg { color: white; opacity: 0.9; }
 .btn-clear-history:hover svg { color: var(--danger); opacity: 1; }
 .btn-download:hover:not(:disabled) svg { color: var(--navy-deep); opacity: 1; }
+
+
+/* ── Upload section ── */
+.upload-section {
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.upload-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+.upload-optional {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 20px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  color: var(--text-sec);
+  font-size: 0.92rem;
+}
+.upload-zone:hover {
+  border-color: var(--teal);
+  background: var(--teal-pale);
+  color: var(--text);
+}
+.upload-zone svg { opacity: 0.6; }
+.upload-zone:hover svg { opacity: 1; color: var(--teal); }
+
+.upload-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.upload-extracting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--teal-pale);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.92rem;
+  color: var(--teal);
+}
+
+.upload-success {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.upload-file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(52,211,153,0.08);
+  border: 1px solid rgba(52,211,153,0.25);
+  border-radius: var(--radius);
+}
+
+.upload-filename {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.upload-chars {
+  font-size: 0.75rem;
+  color: var(--success);
+  white-space: nowrap;
+}
+
+.upload-remove {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.upload-remove:hover { color: var(--danger); }
+
+/* ── Mode selector ── */
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mode-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: rgba(4,40,56,0.50);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+  font-family: 'Poppins', sans-serif;
+}
+.mode-btn:hover {
+  border-color: var(--border-hi);
+  background: var(--card-hi);
+}
+.mode-btn.active {
+  border-color: var(--teal);
+  background: var(--teal-pale);
+}
+
+.mode-btn-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.mode-btn.active .mode-btn-label { color: var(--teal); }
+
+.mode-btn-desc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ── Icon colors ── */
+svg { flex-shrink: 0; }
+.btn-generate svg { color: var(--navy-deep); }
+.btn-download svg,
+.btn-reset svg,
+.btn-clear-history svg,
+.label svg { color: white; opacity: 0.9; }
+.btn-clear-history:hover svg { color: var(--danger); opacity: 1; }
+.btn-download:hover:not(:disabled) svg { color: var(--navy-deep); opacity: 1; }
+.upload-label svg { color: var(--teal); opacity: 1; }
