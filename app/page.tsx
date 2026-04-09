@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { workflows, WorkflowId } from '@/lib/workflows'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface HistoryItem {
   id: string
   workflowId: WorkflowId
@@ -22,19 +21,9 @@ const PHASES_BY_WORKFLOW: Record<WorkflowId, string[]> = {
   videoscript: ['Retrieving style rules', 'Writing voice-over intro', 'Writing screen recording script', 'Adding production notes'],
 }
 
-// ─── Icons ───────────────────────────────────────────────────────────────────
-const Logo = () => (
-  <svg width="52" height="22" viewBox="0 0 120 50" fill="none" className="logo">
-    <circle cx="30" cy="25" r="18" stroke="currentColor" strokeWidth="5" fill="none"/>
-    <path d="M48 25 L72 25" stroke="currentColor" strokeWidth="5"/>
-    <circle cx="90" cy="25" r="18" stroke="currentColor" strokeWidth="5" fill="none"/>
-    <line x1="90" y1="10" x2="90" y2="40" stroke="currentColor" strokeWidth="4"/>
-    <line x1="78" y1="25" x2="102" y2="25" stroke="currentColor" strokeWidth="4"/>
-  </svg>
-)
-
+// ─── Icons (larger, consistent) ──────────────────────────────────────────────
 const IconDownload = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
     <polyline points="7,10 12,15 17,10"/>
     <line x1="12" y1="15" x2="12" y2="3"/>
@@ -42,19 +31,34 @@ const IconDownload = () => (
 )
 
 const IconReset = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
     <path d="M3 3v5h5"/>
   </svg>
 )
 
 const IconGenerate = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>
   </svg>
 )
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const IconHistory = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <polyline points="12,6 12,12 16,14"/>
+  </svg>
+)
+
+const IconTrash = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3,6 5,6 21,6"/>
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+    <path d="M10 11v6"/>
+    <path d="M14 11v6"/>
+  </svg>
+)
+
 export default function Home() {
   const [activeWorkflow, setActiveWorkflow] = useState<WorkflowId | null>(null)
   const [fields, setFields] = useState<Record<string, string>>({})
@@ -67,7 +71,6 @@ export default function Home() {
   const outputRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  // Load history from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem('ncs-history')
@@ -77,7 +80,7 @@ export default function Home() {
 
   const saveHistory = useCallback((item: HistoryItem) => {
     setHistory(prev => {
-      const updated = [item, ...prev].slice(0, 20) // keep last 20
+      const updated = [item, ...prev].slice(0, 20)
       try { localStorage.setItem('ncs-history', JSON.stringify(updated)) } catch { /* ignore */ }
       return updated
     })
@@ -116,7 +119,6 @@ export default function Home() {
   const handleGenerate = async () => {
     if (!activeWorkflow || !workflow) return
 
-    // Validate all select fields
     const missing = workflow.fields
       .filter(f => f.type === 'select')
       .filter(f => !fields[f.id])
@@ -138,7 +140,7 @@ export default function Home() {
     let fullText = ''
     let currentPhases = initialPhases
     let chunkCount = 0
-    const phaseInterval = 600 // chars per phase advance
+    const phaseInterval = 600
 
     try {
       const res = await fetch('/api/generate', {
@@ -155,7 +157,6 @@ export default function Home() {
 
       const reader = res.body?.getReader()
       const decoder = new TextDecoder()
-
       if (!reader) throw new Error('No response stream')
 
       while (true) {
@@ -166,7 +167,6 @@ export default function Home() {
         fullText += chunk
         chunkCount += chunk.length
 
-        // Advance phases based on content length
         const targetPhase = Math.min(
           Math.floor(chunkCount / phaseInterval),
           currentPhases.length - 1
@@ -178,17 +178,13 @@ export default function Home() {
         }
 
         setOutput(fullText)
-
-        // Auto-scroll output
         if (outputRef.current) {
           outputRef.current.scrollTop = outputRef.current.scrollHeight
         }
       }
 
-      // Mark all phases done
       setPhases(currentPhases.map(p => ({ ...p, status: 'done' })))
 
-      // Save to history
       const topic = fields.topic || fields.coursetitle || workflow.title
       saveHistory({
         id: Date.now().toString(),
@@ -273,14 +269,16 @@ export default function Home() {
   const canGenerate = !generating && !!workflow &&
     workflow.fields.filter(f => f.type === 'select').every(f => !!fields[f.id])
 
+  // Fields that should render as resizable textarea
+  const textareaFields = ['topic', 'coursetitle', 'scope']
+
   return (
     <div className="app">
 
-      {/* Header */}
+      {/* Header — no logo */}
       <header className="header">
-        <Logo />
         <div className="header-text">
-          <h1>Nerdio Content Studio</h1>
+          <h1><span className="brand">Nerdio</span> Content Studio</h1>
           <p>Learning &amp; Development — Nerdio University content generation</p>
         </div>
         <span className="header-badge">Beta</span>
@@ -297,6 +295,7 @@ export default function Home() {
             {workflows.map(w => (
               <button
                 key={w.id}
+                data-workflow={w.id}
                 className={`wf-card${activeWorkflow === w.id ? ' active' : ''}`}
                 onClick={() => handleWorkflowSelect(w.id)}
                 disabled={generating}
@@ -310,8 +309,8 @@ export default function Home() {
 
           {/* Intake form */}
           {workflow && !output && (
-            <div className="form-panel">
-              <div className="label" style={{ marginBottom: 20 }}>{workflow.title} — details</div>
+            <div className="form-panel" data-workflow={activeWorkflow}>
+              <div className="label" style={{ marginBottom: 24 }}>{workflow.title} — details</div>
               <div className="form-grid">
                 {workflow.fields.map(field => (
                   <div key={field.id} className={`field${field.fullWidth ? ' full' : ''}`}>
@@ -329,6 +328,15 @@ export default function Home() {
                           <option key={opt} value={opt}>{opt}</option>
                         ))}
                       </select>
+                    ) : textareaFields.includes(field.id) ? (
+                      <textarea
+                        className="field-textarea"
+                        placeholder={field.placeholder}
+                        value={fields[field.id] || ''}
+                        onChange={e => handleFieldChange(field.id, e.target.value)}
+                        disabled={generating}
+                        rows={field.id === 'scope' ? 4 : 3}
+                      />
                     ) : (
                       <input
                         type="text"
@@ -399,7 +407,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Success message after download */}
           {output && !generating && !error && (
             <div className="msg msg-success">
               <span className="msg-icon">✓</span>
@@ -411,11 +418,14 @@ export default function Home() {
 
         {/* Right column — history */}
         <div className="history-panel">
-          <div className="label">Recent outputs</div>
+          <div className="label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IconHistory />
+            Recent outputs
+          </div>
           <div className="history-list">
             {history.length === 0 ? (
               <div className="history-empty">
-                No history yet.<br />Generated content will appear here.
+                No history yet.<br />Generated content appears here.
               </div>
             ) : (
               history.map(item => (
@@ -428,7 +438,9 @@ export default function Home() {
             )}
           </div>
           {history.length > 0 && (
-            <button className="btn-clear-history" onClick={handleClearHistory}>
+            <button className="btn-clear-history" onClick={handleClearHistory}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <IconTrash />
               Clear history
             </button>
           )}
