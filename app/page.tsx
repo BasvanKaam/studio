@@ -125,6 +125,7 @@ export default function Home() {
   const [reviewing, setReviewing] = useState(false)
   const [applying, setApplying] = useState(false)
   const [correctedOutput, setCorrectedOutput] = useState<string | null>(null)
+  const [reviewCountdown, setReviewCountdown] = useState<number | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [reviewOutput, setReviewOutput] = useState<string | null>(null)
   const [output, setOutput] = useState<string | null>(null)
@@ -174,6 +175,7 @@ export default function Home() {
     setExtractError('')
     setReviewOutput(null)
     setCorrectedOutput(null)
+    setReviewCountdown(null)
   }
 
   const handleFieldChange = (id: string, value: string) => {
@@ -346,8 +348,24 @@ export default function Home() {
 
   const handleReview = async () => {
     if (!output || !activeWorkflow) return
-    setReviewing(true)
     setReviewOutput(null)
+
+    // 60-second cooldown to avoid rate limit
+    setReviewCountdown(60)
+    await new Promise<void>(resolve => {
+      let seconds = 60
+      const interval = setInterval(() => {
+        seconds -= 1
+        setReviewCountdown(seconds)
+        if (seconds <= 0) {
+          clearInterval(interval)
+          setReviewCountdown(null)
+          resolve()
+        }
+      }, 1000)
+    })
+
+    setReviewing(true)
 
     try {
       const res = await fetch('/api/review', {
@@ -425,6 +443,7 @@ export default function Home() {
     setExtractError('')
     setReviewOutput(null)
     setCorrectedOutput(null)
+    setReviewCountdown(null)
   }
 
   const handleHistoryItem = (item: HistoryItem) => {
@@ -729,7 +748,7 @@ export default function Home() {
                   <div className="review-title">Quality review</div>
                   <div className="review-sub">Style compliance, KB verification, and SME flags — powered by the Review Assistant</div>
                 </div>
-                {!reviewing && !reviewOutput && (
+                {!reviewing && !reviewOutput && reviewCountdown === null && (
                   <button className="btn-review" onClick={handleReview}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M9 11l3 3L22 4"/>
@@ -744,7 +763,32 @@ export default function Home() {
                     Reviewing…
                   </div>
                 )}
-                {reviewOutput && !reviewing && !applying && (
+                {reviewCountdown !== null && (
+                  <div className="review-countdown">
+                    <div className="countdown-ring">
+                      <svg width="52" height="52" viewBox="0 0 52 52">
+                        <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(167,149,199,0.15)" strokeWidth="4"/>
+                        <circle
+                          cx="26" cy="26" r="22" fill="none"
+                          stroke="#A795C7" strokeWidth="4"
+                          strokeLinecap="round"
+                          strokeDasharray={`${2 * Math.PI * 22}`}
+                          strokeDashoffset={`${2 * Math.PI * 22 * (1 - reviewCountdown / 60)}`}
+                          transform="rotate(-90 26 26)"
+                          style={{ transition: 'stroke-dashoffset 1s linear' }}
+                        />
+                        <text x="26" y="31" textAnchor="middle" fill="#A795C7" fontSize="13" fontWeight="700" fontFamily="Poppins, sans-serif">
+                          {reviewCountdown}
+                        </text>
+                      </svg>
+                    </div>
+                    <div className="countdown-text">
+                      <div className="countdown-label">Preparing review…</div>
+                      <div className="countdown-sub">Waiting {reviewCountdown}s to avoid API rate limits</div>
+                    </div>
+                  </div>
+                )}
+              {reviewOutput && !reviewing && !applying && (
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                     {!correctedOutput && (
                       <button className="btn-apply" onClick={handleApply}>
