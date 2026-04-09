@@ -284,8 +284,9 @@ export default function Home() {
         const { done, value } = await reader.read()
         if (done) break
         const chunk = decoder.decode(value, { stream: true })
-        fullText += chunk
-        chunkCount += chunk.length
+        const cleanChunk = chunk.replace(/__SEARCHING__/g, '\n⟳ Searching Nerdio documentation\n')
+        fullText += cleanChunk
+        chunkCount += cleanChunk.length
         const targetPhase = Math.min(Math.floor(chunkCount / phaseInterval), currentPhases.length - 1)
         const currentActive = currentPhases.findIndex(p => p.status === 'active')
         if (targetPhase > currentActive) {
@@ -351,9 +352,9 @@ export default function Home() {
     setReviewOutput(null)
 
     // 60-second cooldown to avoid rate limit
-    setReviewCountdown(60)
+    setReviewCountdown(120)
     await new Promise<void>(resolve => {
-      let seconds = 60
+      let seconds = 120
       const interval = setInterval(() => {
         seconds -= 1
         setReviewCountdown(seconds)
@@ -385,7 +386,8 @@ export default function Home() {
         const { done, value } = await reader.read()
         if (done) break
         const chunk = decoder.decode(value, { stream: true })
-        fullReview += chunk
+        const cleanChunk = chunk.replace(/__SEARCHING__/g, '\n⟳ Searching Nerdio documentation\n')
+        fullReview += cleanChunk
         setReviewOutput(fullReview)
         if (reviewRef.current) reviewRef.current.scrollTop = reviewRef.current.scrollHeight
       }
@@ -773,7 +775,7 @@ export default function Home() {
                           stroke="#A795C7" strokeWidth="4"
                           strokeLinecap="round"
                           strokeDasharray={`${2 * Math.PI * 22}`}
-                          strokeDashoffset={`${2 * Math.PI * 22 * (1 - reviewCountdown / 60)}`}
+                          strokeDashoffset={`${2 * Math.PI * 22 * (1 - reviewCountdown / 120)}`}
                           transform="rotate(-90 26 26)"
                           style={{ transition: 'stroke-dashoffset 1s linear' }}
                         />
@@ -784,7 +786,7 @@ export default function Home() {
                     </div>
                     <div className="countdown-text">
                       <div className="countdown-label">Preparing review…</div>
-                      <div className="countdown-sub">Waiting {reviewCountdown}s to avoid API rate limits</div>
+                      <div className="countdown-sub">Waiting {reviewCountdown}s — review starts automatically</div>
                     </div>
                   </div>
                 )}
