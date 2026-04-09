@@ -374,7 +374,7 @@ export default function Home() {
     }
     const interval = setInterval(() => {
       setFunFactIndex(i => (i + 1) % 10)
-    }, 5000)
+    }, 7000)
     return () => clearInterval(interval)
   }, [reviewCountdown !== null])
 
