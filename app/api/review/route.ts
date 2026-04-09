@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
                   controller.enqueue(encoder.encode(event.delta.text))
                 }
                 if (event.type === 'content_block_start' && event.content_block?.name === 'web_search') {
-                  controller.enqueue(encoder.encode('\n[Searching Nerdio documentation…]\n'))
+                  controller.enqueue(encoder.encode('__SEARCHING__'))
                 }
               } catch { /* skip */ }
             }
