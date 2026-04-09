@@ -41,7 +41,7 @@ For every Nerdio-specific claim, UI path, or product behaviour:
 - If no issues: "All style checks passed."
 
 **SME review required:**
-List claims needing expert confirmation before publication.\`
+List claims needing expert confirmation before publication.`
 
 export const workflows: Workflow[] = [
   {
