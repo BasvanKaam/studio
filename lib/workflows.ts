@@ -228,22 +228,20 @@ export const AUDIT_INSTRUCTION = `
 
 VERIFICATION AND AUDIT REQUIREMENTS:
 
-After completing the main output, add a clearly separated section titled "## Quality audit" containing:
+After completing the main output, add this exact section — no extra headings, no duplication:
+
+## Quality audit
 
 **KB verification:**
-For every Nerdio-specific claim, feature name, UI navigation path, or product behaviour you included:
-- Search nmehelp.getnerdio.com or nmmhelp.getnerdio.com to verify
-- List each claim with one of these verdicts:
-  - ✅ VERIFIED — matches current KB documentation (include the KB article title)
-  - ⚠ OUTDATED — article exists but claim no longer matches
-  - ❌ INCORRECT — claim contradicts KB documentation (provide correction)
-  - ❓ NOT FOUND — no KB article found (flag for SME review)
+For every Nerdio-specific claim, UI path, or product behaviour:
+- Search nmehelp.getnerdio.com or nmmhelp.getnerdio.com
+- ✅ VERIFIED — [claim] | [KB article title]
+- ❌ INCORRECT — [claim] | Correction: [correct info]
+- ❓ NOT FOUND — [claim] | SME review required
 
 **Style compliance:**
-List any style issues found in the output:
-- ❌ FAIL — rule violated (state the rule and the offending text)
-- ⚠ REVIEW — ambiguous or context-dependent
+- ❌ FAIL — [rule] | OLD: "[text]" → NEW: "[corrected]"
 - If no issues: "All style checks passed."
 
 **SME review required:**
-List any claims, procedures, or technical details that could not be verified and require subject matter expert confirmation before publication.`
+List claims needing expert confirmation before publication.`
