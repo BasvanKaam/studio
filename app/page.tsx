@@ -122,6 +122,8 @@ export default function Home() {
   const [phases, setPhases] = useState<Phase[]>([])
   const [generating, setGenerating] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [reviewing, setReviewing] = useState(false)
+  const [reviewOutput, setReviewOutput] = useState<string | null>(null)
   const [output, setOutput] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<HistoryItem[]>([])
@@ -135,6 +137,7 @@ export default function Home() {
   const [extractError, setExtractError] = useState<string>('')
 
   const outputRef  = useRef<HTMLDivElement>(null)
+  const reviewRef  = useRef<HTMLDivElement>(null)
   const abortRef   = useRef<AbortController | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -166,6 +169,7 @@ export default function Home() {
     setDocumentText('')
     setExtraInstructions('')
     setExtractError('')
+    setReviewOutput(null)
   }
 
   const handleFieldChange = (id: string, value: string) => {
@@ -335,6 +339,41 @@ export default function Home() {
     }
   }
 
+
+  const handleReview = async () => {
+    if (!output || !activeWorkflow) return
+    setReviewing(true)
+    setReviewOutput(null)
+
+    try {
+      const res = await fetch('/api/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: output, workflowId: activeWorkflow }),
+      })
+
+      if (!res.ok) throw new Error('Review failed')
+
+      const reader = res.body?.getReader()
+      const decoder = new TextDecoder()
+      if (!reader) throw new Error('No response stream')
+
+      let fullReview = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        fullReview += chunk
+        setReviewOutput(fullReview)
+        if (reviewRef.current) reviewRef.current.scrollTop = reviewRef.current.scrollHeight
+      }
+    } catch (err) {
+      setReviewOutput('Review failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+    } finally {
+      setReviewing(false)
+    }
+  }
+
   const handleReset = () => {
     if (abortRef.current) abortRef.current.abort()
     setOutput(null)
@@ -346,6 +385,7 @@ export default function Home() {
     setDocumentText('')
     setExtraInstructions('')
     setExtractError('')
+    setReviewOutput(null)
   }
 
   const handleHistoryItem = (item: HistoryItem) => {
@@ -601,6 +641,43 @@ export default function Home() {
                 </div>
               </div>
               <div className="output-content" ref={outputRef}>{output}</div>
+            </div>
+          )}
+
+
+          {/* Quality review */}
+          {output && !generating && (
+            <div className="review-section">
+              <div className="review-header">
+                <div>
+                  <div className="review-title">Quality review</div>
+                  <div className="review-sub">Style compliance, KB verification, and SME flags — powered by the Review Assistant</div>
+                </div>
+                {!reviewing && !reviewOutput && (
+                  <button className="btn-review" onClick={handleReview}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 11l3 3L22 4"/>
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                    Run quality review
+                  </button>
+                )}
+                {reviewing && (
+                  <div className="review-running">
+                    <span className="spinner" style={{ width: 18, height: 18 }} />
+                    Reviewing…
+                  </div>
+                )}
+                {reviewOutput && !reviewing && (
+                  <button className="btn-review-again" onClick={handleReview}>Run again</button>
+                )}
+              </div>
+
+              {reviewOutput && (
+                <div className="review-output" ref={reviewRef}>
+                  {reviewOutput}
+                </div>
+              )}
             </div>
           )}
 
