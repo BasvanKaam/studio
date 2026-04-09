@@ -11,13 +11,13 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "docx": "^9.0.0",
     "next": "15.2.4",
-    "react": "^18",
-    "react-dom": "^18"
+    "react": "^19",
+    "react-dom": "^19"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "typescript": "^5"
   }
 }
