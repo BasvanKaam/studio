@@ -1,13 +1,15 @@
 import { NextRequest } from 'next/server'
 
-const APPLY_SYSTEM_PROMPT = `You are a Nerdio L&D content editor. You receive a piece of content and a list of style findings. Apply every MUST FIX and SHOULD FIX finding to the content and return the fully corrected version.
+const APPLY_SYSTEM_PROMPT = `You are a Nerdio L&D content editor. You receive content and findings. Apply all corrections and return the fully corrected version.
 
 Rules:
-- Apply every MUST FIX and SHOULD FIX finding precisely using the NEW text from each finding
-- Do not change anything not in the findings list
+- Apply every MUST FIX and SHOULD FIX finding from the quality review using the NEW text
+- Also apply every ❌ INCORRECT finding from any "Quality audit" or "KB verification" section in the content itself
+- For INCORRECT findings: replace the wrong claim/path/term with the correct one stated in the finding
+- Do not change anything not flagged in the findings
 - Preserve the author's voice and all content without findings
-- Return only the corrected content — no commentary, no preamble, no explanation
-- Maintain the exact same structure and formatting as the original`
+- Strip any "Quality audit" section from the final output — it should not appear in the corrected content
+- Return only the corrected lesson/document content — no commentary, no preamble, no explanation`
 
 export async function POST(req: NextRequest) {
   try {
