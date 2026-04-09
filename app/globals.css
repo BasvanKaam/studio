@@ -60,9 +60,9 @@ body::before {
 .app {
   position: relative;
   z-index: 1;
-  max-width: 1400px;
+  max-width: 1700px;
   margin: 0 auto;
-  padding: 0 48px 120px;
+  padding: 0 60px 120px;
 }
 
 /* ── Header ── */
@@ -107,7 +107,7 @@ body::before {
 /* ── Two-column layout ── */
 .layout {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 1fr 420px;
   gap: 36px;
   align-items: start;
 }
