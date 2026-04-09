@@ -513,12 +513,13 @@ body::before {
 .msg-success { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.32); color: var(--success); }
 .msg-icon { flex-shrink: 0; font-size: 1.1rem; margin-top: 1px; }
 
-/* ── Icon colors ── */
-.btn-generate svg { color: var(--navy-deep); flex-shrink: 0; }
-.btn-download svg { color: var(--teal); flex-shrink: 0; }
-.btn-download:hover:not(:disabled) svg { color: var(--navy-deep); }
-.btn-reset svg { color: var(--text-sec); flex-shrink: 0; }
-.btn-reset:hover svg { color: var(--text); }
-.btn-clear-history svg { color: var(--text-muted); flex-shrink: 0; }
-.btn-clear-history:hover svg { color: var(--danger); }
-.label svg { color: var(--teal); flex-shrink: 0; }
+/* ── Icon colors — white, thin line, consistent ── */
+svg { flex-shrink: 0; }
+.btn-generate svg { color: var(--navy-deep); }
+.btn-download svg,
+.btn-reset svg,
+.btn-clear-history svg,
+.label svg,
+.output-label svg { color: white; opacity: 0.9; }
+.btn-clear-history:hover svg { color: var(--danger); opacity: 1; }
+.btn-download:hover:not(:disabled) svg { color: var(--navy-deep); opacity: 1; }
