@@ -819,23 +819,26 @@ svg { flex-shrink: 0; }
 .chat-fab {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 22px;
-  background: linear-gradient(135deg, var(--teal), var(--teal-light));
-  color: var(--navy-deep);
+  gap: 12px;
+  padding: 18px 28px;
+  background: linear-gradient(135deg, #1E9DB8 0%, #CDFF4E 100%);
+  color: #021c28;
   border: none;
   border-radius: 50px;
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 32px var(--teal-glow);
-  transition: all 0.2s ease;
+  box-shadow: 0 6px 32px rgba(0,0,0,0.4), 0 0 48px rgba(30,157,184,0.4), 0 0 24px rgba(205,255,78,0.2);
+  transition: all 0.25s ease;
   white-space: nowrap;
+  letter-spacing: 0.2px;
+  animation: fabPulse 3s ease-in-out infinite;
 }
 .chat-fab:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 0 40px var(--teal-glow);
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.45), 0 0 64px rgba(30,157,184,0.5), 0 0 32px rgba(205,255,78,0.3);
+  animation: none;
 }
 .chat-fab.active {
   background: rgba(4,40,56,0.95);
@@ -843,11 +846,18 @@ svg { flex-shrink: 0; }
   box-shadow: 0 4px 24px rgba(0,0,0,0.4);
   border: 1px solid var(--border);
   border-radius: 50%;
-  padding: 14px;
+  padding: 16px;
+  animation: none;
 }
 .chat-fab-label {
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+@keyframes fabPulse {
+  0%, 100% { box-shadow: 0 6px 32px rgba(0,0,0,0.4), 0 0 48px rgba(30,157,184,0.4), 0 0 24px rgba(205,255,78,0.2); }
+  50% { box-shadow: 0 6px 32px rgba(0,0,0,0.4), 0 0 64px rgba(30,157,184,0.55), 0 0 40px rgba(205,255,78,0.35); }
 }
 
 .chat-popup {
