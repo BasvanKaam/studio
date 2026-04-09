@@ -1021,10 +1021,12 @@ svg { flex-shrink: 0; }
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 24px 32px;
+  padding: 28px 32px;
   background: rgba(167,149,199,0.06);
   border-top: 1px solid var(--border);
   animation: fadeUp 0.22s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .review-countdown-top {
@@ -1037,12 +1039,14 @@ svg { flex-shrink: 0; }
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
 }
 
 .stats-row {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 10px;
+  width: 100%;
 }
 
 .stat-card {
@@ -1121,13 +1125,16 @@ svg { flex-shrink: 0; }
 /* ── Fun fact bar ── */
 .fun-fact-bar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  padding: 14px 20px;
+  padding: 16px 20px;
   background: rgba(205,255,78,0.06);
   border: 1px solid rgba(205,255,78,0.20);
   border-radius: var(--radius);
   animation: fadeUp 0.4s ease;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 56px;
 }
 
 .fun-fact-icon {
@@ -1139,6 +1146,8 @@ svg { flex-shrink: 0; }
 .fun-fact-text {
   font-size: 0.88rem;
   color: rgba(205,255,78,0.85);
-  line-height: 1.6;
+  line-height: 1.5;
   font-style: italic;
+  display: flex;
+  align-items: center;
 }
