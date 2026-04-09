@@ -123,6 +123,7 @@ export default function Home() {
   const [generating, setGenerating] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [reviewing, setReviewing] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
   const [reviewOutput, setReviewOutput] = useState<string | null>(null)
   const [output, setOutput] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -719,6 +720,46 @@ export default function Home() {
           )}
         </div>
 
+      </div>
+
+      {/* Floating chat button + popup */}
+      <div className="chat-widget">
+        {chatOpen && (
+          <div className="chat-popup">
+            <div className="chat-popup-header">
+              <span className="chat-popup-title">Nerdio University Assistant</span>
+              <button className="chat-popup-close" onClick={() => setChatOpen(false)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <iframe
+              src="https://uniassistant-delta.vercel.app"
+              className="chat-iframe"
+              title="Nerdio University Assistant"
+              allow="clipboard-write"
+            />
+          </div>
+        )}
+        <button
+          className={`chat-fab${chatOpen ? ' active' : ''}`}
+          onClick={() => setChatOpen(o => !o)}
+          title="Nerdio University Assistant"
+        >
+          {chatOpen ? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          )}
+          {!chatOpen && <span className="chat-fab-label">University Assistant</span>}
+        </button>
       </div>
     </div>
   )
