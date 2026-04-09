@@ -971,3 +971,34 @@ svg { flex-shrink: 0; }
   border-color: var(--border-hi);
   color: var(--text-sec);
 }
+
+/* ── Review countdown ── */
+.review-countdown {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+
+.countdown-ring {
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(167,149,199,0.4));
+}
+
+.countdown-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.countdown-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--purple);
+}
+
+.countdown-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
