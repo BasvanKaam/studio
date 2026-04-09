@@ -1,83 +1,55 @@
 import { NextRequest } from 'next/server'
 
-const REVIEW_SYSTEM_PROMPT = `You are the Nerdio Review Assistant. Review L&D content for style compliance and factual accuracy.
+const REVIEW_SYSTEM_PROMPT = `You are a Nerdio L&D content reviewer. Review content for style compliance and factual accuracy. Be concise — flag issues clearly but briefly.
 
-SEVERITY LEVELS: MUST FIX (hard rule violation), SHOULD FIX (style issue), NICE TO HAVE (minor improvement).
+SEVERITY: MUST FIX (hard violation), SHOULD FIX (style issue), NICE TO HAVE (minor).
 
-KEY STYLE RULES:
-- Titles and H2s: imperative or noun phrase — never gerunds (-ing), never "How to…"
-- Headings: sentence-style capitalisation, no period at end
-- Numbered steps: bare imperative, no "you [verb]", period at end
-- Bullets: every item starts with capital letter, list intro ends with colon
-- "choose" → "select" for UI interactions; "show" → "display"
-- "simply", "easy", "just" → remove or replace
-- "Nerdio" alone → "Nerdio Manager" when referring to the product
-- No quotation marks around UI labels — use bold
-- Semicolons → period or colon
-- Future tense → present tense in explanatory text
-- Contractions preferred: "you're", "it's", "you've"
-- "training" → "lesson"; "student" → "learner"; "portal" → "application"
-- "deliberately" → "intentionally"; "care about" → "need to handle"
-- Every list introduced by a sentence ending in colon
-- No "e.g." → "for example"; no "i.e." → "that is"
-- NME / NMM → always write out full product name
-- Private preview status must be explicitly disclosed if applicable
-- No tables in lesson content (except meta/objectives/glossary)
-- Numbered headings: en dash → colon ("Use case 1 – Title" → "Use case 1: Title")
+KEY RULES:
+- Titles/H2s: imperative or noun phrase, no gerunds, no "How to…", sentence-style caps, no period at end
+- Steps: bare imperative, no "you [verb]", period at end
+- Bullets: capital first letter, list intro ends with colon
+- "choose" → "select" for UI; "show" → "display"; "simply/easy/just" → remove
+- "Nerdio" alone → "Nerdio Manager" when referring to product
+- No quotes around UI labels — use bold
+- Semicolons → period or colon; no future tense; no em/en dash
+- Contractions preferred; "training" → "lesson"; "portal" → "application"
+- Private preview must be disclosed if applicable; no tables in lesson body
+- NME/NMM → write out full product name
 
-OUTPUT FORMAT — use exactly this structure:
+OUTPUT — use exactly this structure:
 
 ## Quality review
 
 ### Style findings
-
-For each issue:
-**[MUST FIX / SHOULD FIX / NICE TO HAVE]** | [location]
-OLD: "[exact text]"
-NEW: "[corrected text]"
-RULE: [rule]
-
+For each issue: **[SEVERITY]** | [location] / OLD: "..." / NEW: "..." / RULE: [rule]
 If none: "No style issues found."
 
 ### KB verification
-
-Use web search to verify Nerdio-specific claims against nmehelp.getnerdio.com or nmmhelp.getnerdio.com.
-For each claim:
-✅ VERIFIED — [claim] | Source: [article title]
-⚠ OUTDATED — [claim] | [explanation]  
-❌ INCORRECT — [claim] | Correction: [correct info]
-❓ NOT FOUND — [claim] | Action: SME review required
+Search nmehelp.getnerdio.com or nmmhelp.getnerdio.com for Nerdio-specific claims.
+✅ VERIFIED — [claim] | [article title]
+⚠ OUTDATED — [claim] | [note]
+❌ INCORRECT — [claim] | Correction: [info]
+❓ NOT FOUND — [claim] | SME review required
 
 ### SME review required
-
-List claims needing subject matter expert confirmation before publication.
+List claims needing expert confirmation.
 
 ### Overall verdict
-
-One of:
-✅ **Ready for SME review** — minor issues only
-⚠ **Revise before SME review** — [n] must-fix issues
-❌ **Significant revision required** — structural or content issues`
+✅ Ready for SME review / ⚠ Revise before SME review — [n] must-fix / ❌ Significant revision required`
 
 export async function POST(req: NextRequest) {
   try {
     const { content, workflowId } = await req.json()
+    if (!content) return new Response(JSON.stringify({ error: 'No content' }), { status: 400 })
 
-    if (!content) {
-      return new Response(
-        JSON.stringify({ error: 'No content to review' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
+    // Trim content to max 6000 chars to stay within token limits
+    const trimmed = content.length > 6000
+      ? content.slice(0, 6000) + '\n\n[Content trimmed for review — full version in output panel]'
+      : content
 
-    const reviewPrompt = `Review this ${workflowId === 'addie' ? 'ADDIE document' : workflowId === 'videoscript' ? 'video script' : 'lesson'} for style compliance and factual accuracy. Search the Nerdio Help Center to verify Nerdio-specific claims.
-
-CONTENT TO REVIEW:
-
-${content}`
+    const reviewPrompt = `Review this ${workflowId === 'addie' ? 'ADDIE document' : workflowId === 'videoscript' ? 'video script' : 'lesson'}. Search the Nerdio Help Center to verify claims.\n\n${trimmed}`
 
     const encoder = new TextEncoder()
-
     const stream = new ReadableStream({
       async start(controller) {
         try {
@@ -99,8 +71,7 @@ ${content}`
           })
 
           if (!response.ok) {
-            const err = await response.text()
-            controller.enqueue(encoder.encode(`[ERROR: ${err}]`))
+            controller.enqueue(encoder.encode(`[ERROR: ${await response.text()}]`))
             controller.close()
             return
           }
@@ -143,9 +114,6 @@ ${content}`
       headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' },
     })
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'Request failed' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Failed' }), { status: 500 })
   }
 }
