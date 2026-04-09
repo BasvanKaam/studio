@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { execSync } from 'child_process'
-import { writeFileSync, unlinkSync, existsSync, readFileSync } from 'fs'
-import { join } from 'path'
-import { tmpdir } from 'os'
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,15 +33,94 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Extract docx using JSZip-compatible approach — no unzip binary needed
 async function extractDocx(buffer: Buffer): Promise<string> {
-  const tmpFile = join(tmpdir(), `ncs_${Date.now()}.docx`)
-  const tmpDir  = join(tmpdir(), `ncs_${Date.now()}`)
   try {
-    writeFileSync(tmpFile, buffer)
-    execSync(`mkdir -p "${tmpDir}" && unzip -q "${tmpFile}" -d "${tmpDir}"`, { timeout: 15000 })
-    const xmlPath = join(tmpDir, 'word', 'document.xml')
-    if (!existsSync(xmlPath)) return 'Could not read document content.'
-    const xml = readFileSync(xmlPath, 'utf-8')
+    // docx files are zip archives — find PK signature and parse manually
+    // Use a simple approach: send to Anthropic as base64 for text extraction
+    const base64 = buffer.toString('base64')
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                data: base64,
+              },
+            },
+            {
+              type: 'text',
+              text: 'Extract all text content from this Word document. Return plain text only, preserving paragraph structure with line breaks. No commentary, no formatting, no markdown.',
+            },
+          ],
+        }],
+      }),
+    })
+    const data = await response.json()
+    if (data.error) {
+      // Fallback: try parsing the zip manually
+      return await extractDocxZip(buffer)
+    }
+    return data.content?.[0]?.text || ''
+  } catch {
+    return await extractDocxZip(buffer)
+  }
+}
+
+// Fallback: parse docx zip structure to extract XML text
+async function extractDocxZip(buffer: Buffer): Promise<string> {
+  try {
+    // Find document.xml inside the zip using binary search
+    const bufStr = buffer.toString('binary')
+    
+    // Look for document.xml content between zip local file headers
+    const xmlMarker = 'word/document.xml'
+    const markerIdx = bufStr.indexOf(xmlMarker)
+    if (markerIdx === -1) return 'Could not read document content.'
+
+    // Find the data start (after the local file header)
+    // PK\x03\x04 is local file header signature
+    // Skip: 4 (sig) + 2 (version) + 2 (flags) + 2 (compression) + 2 (mod time) + 2 (mod date) + 4 (crc) + 4 (compressed) + 4 (uncompressed) + 2 (name len) + 2 (extra len) + name
+    const headerStart = bufStr.lastIndexOf('\x50\x4b\x03\x04', markerIdx)
+    if (headerStart === -1) return 'Could not parse document structure.'
+
+    const nameLen = buffer.readUInt16LE(headerStart + 26)
+    const extraLen = buffer.readUInt16LE(headerStart + 28)
+    const dataStart = headerStart + 30 + nameLen + extraLen
+
+    // Read compressed size
+    const compressedSize = buffer.readUInt32LE(headerStart + 18)
+    const compressionMethod = buffer.readUInt16LE(headerStart + 8)
+
+    let xmlData: Buffer
+    if (compressionMethod === 0) {
+      // Stored (no compression)
+      xmlData = buffer.slice(dataStart, dataStart + compressedSize)
+    } else {
+      // Deflate compressed
+      const zlib = await import('zlib')
+      const compressed = buffer.slice(dataStart, dataStart + compressedSize)
+      xmlData = await new Promise((resolve, reject) => {
+        zlib.inflateRaw(compressed, (err, result) => {
+          if (err) reject(err)
+          else resolve(result)
+        })
+      })
+    }
+
+    const xml = xmlData.toString('utf-8')
     return xml
       .replace(/<w:p[ >]/g, '\n<w:p>')
       .replace(/<w:br[^>]*>/g, '\n')
@@ -57,8 +132,8 @@ async function extractDocx(buffer: Buffer): Promise<string> {
       .replace(/&#x[0-9A-Fa-f]+;/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim()
-  } finally {
-    try { execSync(`rm -f "${tmpFile}" && rm -rf "${tmpDir}"`) } catch { /* ignore */ }
+  } catch {
+    return 'Could not extract text from this document.'
   }
 }
 
