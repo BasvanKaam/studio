@@ -171,6 +171,7 @@ export default function Home() {
     setExtraInstructions('')
     setExtractError('')
     setReviewOutput(null)
+    setCorrectedOutput(null)
   }
 
   const handleFieldChange = (id: string, value: string) => {
@@ -321,7 +322,7 @@ export default function Home() {
       const res = await fetch('/api/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: output, workflowId: activeWorkflow, fields, filename }),
+        body: JSON.stringify({ content: correctedOutput || output, workflowId: activeWorkflow, fields, filename }),
       })
       if (!res.ok) throw new Error('Download failed')
       const blob = await res.blob()
@@ -375,6 +376,40 @@ export default function Home() {
     }
   }
 
+
+  const handleApply = async () => {
+    if (!output || !reviewOutput || !activeWorkflow) return
+    setApplying(true)
+    setCorrectedOutput(null)
+
+    try {
+      const res = await fetch('/api/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: output, reviewOutput, workflowId: activeWorkflow }),
+      })
+
+      if (!res.ok) throw new Error('Apply failed')
+
+      const reader = res.body?.getReader()
+      const decoder = new TextDecoder()
+      if (!reader) throw new Error('No stream')
+
+      let fullText = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        fullText += chunk
+        setCorrectedOutput(fullText)
+      }
+    } catch (err) {
+      setCorrectedOutput('Apply failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+    } finally {
+      setApplying(false)
+    }
+  }
+
   const handleReset = () => {
     if (abortRef.current) abortRef.current.abort()
     setOutput(null)
@@ -387,6 +422,7 @@ export default function Home() {
     setExtraInstructions('')
     setExtractError('')
     setReviewOutput(null)
+    setCorrectedOutput(null)
   }
 
   const handleHistoryItem = (item: HistoryItem) => {
@@ -626,13 +662,28 @@ export default function Home() {
             <div className="output-panel">
               <div className="output-header">
                 <span className="output-label">
-                  {generating ? 'Generating…' : `${workflow?.title || 'Output'} — ready`}
+                  {generating ? 'Generating…' : correctedOutput ? `${workflow?.title || 'Output'} — corrected and ready` : `${workflow?.title || 'Output'} — ready`}
                 </span>
                 <div className="header-actions">
-                  {!generating && (
+                  {!generating && correctedOutput && (
+                    <button className="btn-download" onClick={handleDownload} disabled={downloading}>
+                      <IconDownload />
+                      {downloading ? 'Preparing…' : 'Download corrected .docx'}
+                    </button>
+                  )}
+                  {!generating && !correctedOutput && (
                     <button className="btn-download" onClick={handleDownload} disabled={downloading}>
                       <IconDownload />
                       {downloading ? 'Preparing…' : 'Download .docx'}
+                    </button>
+                  )}
+                  {!generating && correctedOutput && (
+                    <button className="btn-download-original" onClick={() => {
+                      const orig = output
+                      setCorrectedOutput(null)
+                      setTimeout(() => { handleDownload(); setCorrectedOutput(orig) }, 50)
+                    }} disabled={downloading}>
+                      Download original
                     </button>
                   )}
                   <button className="btn-reset" onClick={handleReset}>
@@ -669,8 +720,27 @@ export default function Home() {
                     Reviewing…
                   </div>
                 )}
-                {reviewOutput && !reviewing && (
-                  <button className="btn-review-again" onClick={handleReview}>Run again</button>
+                {reviewOutput && !reviewing && !applying && (
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {!correctedOutput && (
+                      <button className="btn-apply" onClick={handleApply}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20,6 9,17 4,12"/>
+                        </svg>
+                        Apply corrections
+                      </button>
+                    )}
+                    {correctedOutput && (
+                      <span className="apply-done">✓ Corrections applied</span>
+                    )}
+                    <button className="btn-review-again" onClick={handleReview}>Re-run review</button>
+                  </div>
+                )}
+                {applying && (
+                  <div className="review-running">
+                    <span className="spinner" style={{ width: 18, height: 18 }} />
+                    Applying corrections…
+                  </div>
                 )}
               </div>
 
