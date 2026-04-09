@@ -177,7 +177,7 @@ If lesson position is "1 — Introduction to this course": no knowledge check, n
 If lesson position is "2 — Concepts and architecture": no knowledge check, no procedures. Conceptual only.
 If lesson position is "3 or later": include at least one knowledge check.
 
-Apply every Nerdio L&D style rule without exception.`
+Apply every Nerdio L&D style rule without exception.${AUDIT_INSTRUCTION}`
 
     case 'addie':
       return `Create a complete ADDIE instructional design document.
@@ -198,7 +198,7 @@ Mandatory rules:
 - Write all sections in full — no placeholder text
 - Flag assumptions with ⚠
 
-Deliver the complete document with all sections fully written.`
+Deliver the complete document with all sections fully written.${AUDIT_INSTRUCTION}`
 
     case 'videoscript':
       return `Write a complete Nerdio University video script.
@@ -215,6 +215,33 @@ Structure:
 - Production notes table: format, estimated duration, tone, pacing, KB links to reference
 
 Topic count by duration: under 5 min = 1–2 topics, 5–8 min = 2–3 topics, 8–12 min = 4–5 topics.
-Natural spoken language throughout. No "Now I'm going to show you." No filler phrases.`
+Natural spoken language throughout. No "Now I'm going to show you." No filler phrases.${AUDIT_INSTRUCTION}`
   }
 }
+
+// Audit block appended to every prompt
+export const AUDIT_INSTRUCTION = `
+
+---
+
+VERIFICATION AND AUDIT REQUIREMENTS:
+
+After completing the main output, add a clearly separated section titled "## Quality audit" containing:
+
+**KB verification:**
+For every Nerdio-specific claim, feature name, UI navigation path, or product behaviour you included:
+- Search nmehelp.getnerdio.com or nmmhelp.getnerdio.com to verify
+- List each claim with one of these verdicts:
+  - ✅ VERIFIED — matches current KB documentation (include the KB article title)
+  - ⚠ OUTDATED — article exists but claim no longer matches
+  - ❌ INCORRECT — claim contradicts KB documentation (provide correction)
+  - ❓ NOT FOUND — no KB article found (flag for SME review)
+
+**Style compliance:**
+List any style issues found in the output:
+- ❌ FAIL — rule violated (state the rule and the offending text)
+- ⚠ REVIEW — ambiguous or context-dependent
+- If no issues: "All style checks passed."
+
+**SME review required:**
+List any claims, procedures, or technical details that could not be verified and require subject matter expert confirmation before publication.`
