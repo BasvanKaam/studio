@@ -5,12 +5,10 @@ import {
   BorderStyle, WidthType, ShadingType, VerticalAlign,
 } from 'docx'
 
-// ─── Brand colors ─────────────────────────────────────────────────────────────
 const NAVY        = '042838'
 const TEAL        = '1E9DB8'
 const WHITE       = 'FFFFFF'
 const OFF_WHITE   = 'F7FAFB'
-const LIGHT_GRAY  = 'FAFBFC'
 const MID_GRAY    = '8C96A0'
 const DARK_TEXT   = '162229'
 const BORDER_GRAY = 'C5D2D8'
@@ -22,7 +20,6 @@ const AMBER_PALE  = 'FDF6ED'
 const CW = 9360
 const LINE_SPACING = { line: 276, lineRule: 'auto' as const }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const bdr = (color: string, sz = 4) => ({ style: BorderStyle.SINGLE, size: sz, color })
 const noB = () => ({
   top:    { style: BorderStyle.NONE, size: 0, color: WHITE },
@@ -48,8 +45,7 @@ const p = (children: TextRun[], opts: Record<string, unknown> = {}) =>
 const sp = (before = 120) =>
   new Paragraph({ children: [tx('')], spacing: { before, after: 0 } })
 
-// ─── Callout box ──────────────────────────────────────────────────────────────
-function callout(label: string, body: string, labelColor = AMBER, bgColor = AMBER_PALE, borderColor = AMBER) {
+function callout(label: string, body: string, labelColor = AMBER, bgColor = AMBER_PALE, borderColor = AMBER): Table {
   const LW = 900
   const VW = CW - LW
   return new Table({
@@ -77,40 +73,29 @@ function callout(label: string, body: string, labelColor = AMBER, bgColor = AMBE
   })
 }
 
-// ─── Markdown parser → docx paragraphs ───────────────────────────────────────
-function parseMarkdown(markdown: string): Paragraph[] {
+function parseMarkdown(markdown: string): (Paragraph | Table)[] {
   const lines = markdown.split('\n')
-  const result: Paragraph[] = []
+  const result: (Paragraph | Table)[] = []
   let inKC = false
 
   for (const line of lines) {
-    // H1
     if (line.startsWith('# ')) {
       result.push(p([bld(line.slice(2), 34, NAVY)], { spacing: { before: 0, after: 100, ...LINE_SPACING } }))
       continue
     }
-
-    // H2
     if (line.startsWith('## ')) {
       const text = line.slice(3)
       inKC = text.toLowerCase().includes('knowledge check')
-      result.push(p(
-        [bld(text, 26, NAVY)],
-        {
-          border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: TEAL_MID } },
-          spacing: { before: 320, after: 100, ...LINE_SPACING },
-        }
-      ))
+      result.push(p([bld(text, 26, NAVY)], {
+        border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: TEAL_MID } },
+        spacing: { before: 320, after: 100, ...LINE_SPACING },
+      }))
       continue
     }
-
-    // H3
     if (line.startsWith('### ')) {
       result.push(p([bld(line.slice(4), 23, NAVY)], { spacing: { before: 200, after: 80, ...LINE_SPACING } }))
       continue
     }
-
-    // Horizontal rule → teal divider
     if (line.trim() === '---') {
       result.push(new Paragraph({
         children: [],
@@ -119,30 +104,22 @@ function parseMarkdown(markdown: string): Paragraph[] {
       }))
       continue
     }
-
-    // Bullet
     if (line.startsWith('- ')) {
-      const text = line.slice(2)
       result.push(new Paragraph({
         numbering: { reference: 'bullets', level: 0 },
-        children: inlineRuns(text),
+        children: inlineRuns(line.slice(2)),
         spacing: { before: 40, after: 40, ...LINE_SPACING },
       }))
       continue
     }
-
-    // Numbered list
     if (/^\d+\. /.test(line)) {
-      const text = line.replace(/^\d+\. /, '')
       result.push(new Paragraph({
         numbering: { reference: 'numbers', level: 0 },
-        children: inlineRuns(text),
+        children: inlineRuns(line.replace(/^\d+\. /, '')),
         spacing: { before: 40, after: 40, ...LINE_SPACING },
       }))
       continue
     }
-
-    // Note: callout — detect "Note:" or "In practice:" prefixed lines
     if (line.startsWith('**Note:**') || line.startsWith('Note:')) {
       const body = line.replace(/^\*?\*?Note:\*?\*?\s*/, '')
       if (body) {
@@ -152,31 +129,24 @@ function parseMarkdown(markdown: string): Paragraph[] {
       }
       continue
     }
-
-    // Empty line
     if (line.trim() === '') {
       result.push(new Paragraph({ children: [tx('')], spacing: { before: 60, after: 0 } }))
       continue
     }
-
-    // Regular paragraph
     result.push(p(inlineRuns(line), { spacing: { before: 80, after: 80, ...LINE_SPACING } }))
+    void inKC
   }
 
   return result
 }
 
-// Handle **bold** and *italic* inline
 function inlineRuns(text: string): TextRun[] {
   const runs: TextRun[] = []
   const regex = /(\*\*.*?\*\*|\*[^*]+\*)/g
   let lastIndex = 0
   let match: RegExpExecArray | null
-
   while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      runs.push(tx(text.slice(lastIndex, match.index)))
-    }
+    if (match.index > lastIndex) runs.push(tx(text.slice(lastIndex, match.index)))
     const raw = match[0]
     if (raw.startsWith('**')) {
       runs.push(bld(raw.slice(2, -2)))
@@ -185,19 +155,13 @@ function inlineRuns(text: string): TextRun[] {
     }
     lastIndex = regex.lastIndex
   }
-
-  if (lastIndex < text.length) {
-    runs.push(tx(text.slice(lastIndex)))
-  }
-
+  if (lastIndex < text.length) runs.push(tx(text.slice(lastIndex)))
   return runs.length > 0 ? runs : [tx(text)]
 }
 
-// ─── Cover block ──────────────────────────────────────────────────────────────
 function coverBlock(workflowTitle: string, subtitle: string, metadata: [string, string][]): Table[] {
   const LW = 2640
   const VW = CW - LW
-
   const headerTable = new Table({
     width: { size: CW, type: WidthType.DXA },
     columnWidths: [CW],
@@ -227,7 +191,6 @@ function coverBlock(workflowTitle: string, subtitle: string, metadata: [string, 
       }),
     ],
   })
-
   const metaTable = new Table({
     width: { size: CW, type: WidthType.DXA },
     columnWidths: [LW, VW],
@@ -252,82 +215,41 @@ function coverBlock(workflowTitle: string, subtitle: string, metadata: [string, 
       ],
     })),
   })
-
   return [headerTable, metaTable]
 }
 
-// ─── Build final document ─────────────────────────────────────────────────────
-function buildDocument(
-  content: string,
-  workflowTitle: string,
-  subtitle: string,
-  metadata: [string, string][]
-): Document {
+function buildDocument(content: string, workflowTitle: string, subtitle: string, metadata: [string, string][]): Document {
   const cover = coverBlock(workflowTitle, subtitle, metadata)
-  const bodyChildren = parseMarkdown(content)
+  const bodyChildren: (Paragraph | Table)[] = parseMarkdown(content)
 
   return new Document({
     numbering: {
       config: [
-        {
-          reference: 'bullets',
-          levels: [{
-            level: 0, format: LevelFormat.BULLET, text: '\u2022',
-            alignment: AlignmentType.LEFT,
-            style: { paragraph: { indent: { left: 720, hanging: 360 } } },
-          }],
-        },
-        {
-          reference: 'numbers',
-          levels: [{
-            level: 0, format: LevelFormat.DECIMAL, text: '%1.',
-            alignment: AlignmentType.LEFT,
-            style: { paragraph: { indent: { left: 720, hanging: 360 } } },
-          }],
-        },
+        { reference: 'bullets', levels: [{ level: 0, format: LevelFormat.BULLET, text: '\u2022', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }] },
+        { reference: 'numbers', levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }] },
       ],
     },
-    styles: {
-      default: { document: { run: { font: 'Arial', size: 22, color: DARK_TEXT } } },
-    },
+    styles: { default: { document: { run: { font: 'Arial', size: 22, color: DARK_TEXT } } } },
     sections: [
-      // Cover page
       {
-        properties: {
-          page: {
-            size: { width: 12240, height: 15840 },
-            margin: { top: 1080, right: 1440, bottom: 1080, left: 1440 },
-          },
-        },
+        properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1080, right: 1440, bottom: 1080, left: 1440 } } },
         children: [...cover, sp(320)],
       },
-      // Content pages
       {
-        properties: {
-          page: {
-            size: { width: 12240, height: 15840 },
-            margin: { top: 1080, right: 1440, bottom: 1080, left: 1440 },
-          },
-        },
+        properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1080, right: 1440, bottom: 1080, left: 1440 } } },
         headers: {
           default: new Header({
             children: [p([
               bld('Nerdio', 18, TEAL),
               new TextRun({ text: `   Learning & Development   \u2014   ${workflowTitle}`, font: 'Arial', size: 18, color: MID_GRAY }),
-            ], {
-              border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: TEAL } },
-              spacing: { after: 0 },
-            })],
+            ], { border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: TEAL } }, spacing: { after: 0 } })],
           }),
         },
         footers: {
           default: new Footer({
             children: [p([
               new TextRun({ text: `Nerdio L&D  \u2022  ${workflowTitle}  \u2022  v1.0`, font: 'Arial', size: 18, color: MID_GRAY }),
-            ], {
-              border: { top: { style: BorderStyle.SINGLE, size: 6, color: TEAL } },
-              spacing: { before: 60 },
-            })],
+            ], { border: { top: { style: BorderStyle.SINGLE, size: 6, color: TEAL } }, spacing: { before: 60 } })],
           }),
         },
         children: bodyChildren,
@@ -336,14 +258,10 @@ function buildDocument(
   })
 }
 
-// ─── API handler ──────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const { content, workflowId, fields, filename } = await req.json()
-
-    if (!content) {
-      return NextResponse.json({ error: 'No content provided' }, { status: 400 })
-    }
+    if (!content) return NextResponse.json({ error: 'No content provided' }, { status: 400 })
 
     const workflowTitles: Record<string, string> = {
       lesson: 'Lesson',
@@ -362,7 +280,6 @@ export async function POST(req: NextRequest) {
       ['Status', 'Draft'],
       ['Generated', new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })],
     ]
-
     if (fields?.level) metadata.splice(2, 0, ['Audience level', fields.level])
 
     const doc = buildDocument(content, workflowTitle, subtitle, metadata)
