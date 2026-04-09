@@ -821,15 +821,15 @@ svg { flex-shrink: 0; }
   align-items: center;
   gap: 12px;
   padding: 18px 28px;
-  background: linear-gradient(135deg, #1E9DB8 0%, #CDFF4E 100%);
-  color: #021c28;
-  border: none;
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #1E9DB8 100%);
+  color: white;
+  border: 1px solid rgba(167,149,199,0.4);
   border-radius: 50px;
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
   font-size: 1rem;
   font-weight: 700;
-  box-shadow: 0 6px 32px rgba(0,0,0,0.4), 0 0 48px rgba(30,157,184,0.4), 0 0 24px rgba(205,255,78,0.2);
+  box-shadow: 0 6px 32px rgba(0,0,0,0.4), 0 0 40px rgba(124,58,237,0.4), 0 0 80px rgba(79,70,229,0.2);
   transition: all 0.25s ease;
   white-space: nowrap;
   letter-spacing: 0.2px;
@@ -837,7 +837,7 @@ svg { flex-shrink: 0; }
 }
 .chat-fab:hover {
   transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 12px 48px rgba(0,0,0,0.45), 0 0 64px rgba(30,157,184,0.5), 0 0 32px rgba(205,255,78,0.3);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.45), 0 0 60px rgba(124,58,237,0.6), 0 0 100px rgba(79,70,229,0.3);
   animation: none;
 }
 .chat-fab.active {
@@ -856,8 +856,8 @@ svg { flex-shrink: 0; }
 }
 
 @keyframes fabPulse {
-  0%, 100% { box-shadow: 0 6px 32px rgba(0,0,0,0.4), 0 0 48px rgba(30,157,184,0.4), 0 0 24px rgba(205,255,78,0.2); }
-  50% { box-shadow: 0 6px 32px rgba(0,0,0,0.4), 0 0 64px rgba(30,157,184,0.55), 0 0 40px rgba(205,255,78,0.35); }
+  0%, 100% { box-shadow: 0 6px 32px rgba(0,0,0,0.4), 0 0 40px rgba(124,58,237,0.4), 0 0 80px rgba(79,70,229,0.2); }
+  50% { box-shadow: 0 6px 32px rgba(0,0,0,0.4), 0 0 60px rgba(124,58,237,0.6), 0 0 100px rgba(79,70,229,0.35); }
 }
 
 .chat-popup {
@@ -920,4 +920,54 @@ svg { flex-shrink: 0; }
     right: 16px;
     bottom: 16px;
   }
+}
+
+/* ── Apply corrections button ── */
+.btn-apply {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 22px;
+  background: var(--success);
+  border: none;
+  border-radius: 10px;
+  color: var(--navy-deep);
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.btn-apply:hover {
+  background: #2ecc87;
+  box-shadow: 0 0 20px rgba(52,211,153,0.4);
+  transform: translateY(-1px);
+}
+
+.apply-done {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.btn-download-original {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.btn-download-original:hover {
+  border-color: var(--border-hi);
+  color: var(--text-sec);
 }
