@@ -1,19 +1,9 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { buildUserPrompt, WorkflowId } from '@/lib/workflows'
-import fs from 'fs'
-import path from 'path'
+import SYSTEM_PROMPT from '@/lib/system-prompt'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-function loadSystemPrompt(): string {
-  try {
-    const filePath = path.join(process.cwd(), 'system-prompt.md')
-    return fs.readFileSync(filePath, 'utf-8')
-  } catch {
-    return 'You are an expert instructional designer for Nerdio Learning & Development. Apply all Nerdio L&D style rules.'
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,10 +16,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const systemPrompt = loadSystemPrompt()
     const userPrompt = buildUserPrompt(workflowId as WorkflowId, fields)
-
-    // Stream the response
     const encoder = new TextEncoder()
 
     const stream = new ReadableStream({
@@ -38,7 +25,7 @@ export async function POST(req: NextRequest) {
           const anthropicStream = await client.messages.stream({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 8000,
-            system: systemPrompt,
+            system: SYSTEM_PROMPT,
             messages: [{ role: 'user', content: userPrompt }],
           })
 
