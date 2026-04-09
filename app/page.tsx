@@ -14,6 +14,7 @@ interface HistoryItem {
 }
 
 type Phase = { label: string; status: 'pending' | 'active' | 'done' }
+type DocumentMode = 'inspiration' | 'adapt' | 'basis'
 
 const PHASES_BY_WORKFLOW: Record<WorkflowId, string[]> = {
   lesson:      ['Retrieving style rules', 'Writing lesson content', 'Adding knowledge check', 'Finalising output'],
@@ -21,7 +22,7 @@ const PHASES_BY_WORKFLOW: Record<WorkflowId, string[]> = {
   videoscript: ['Retrieving style rules', 'Writing voice-over intro', 'Writing screen recording script', 'Adding production notes'],
 }
 
-// ─── Icons (larger, consistent) ──────────────────────────────────────────────
+// ─── Icons ────────────────────────────────────────────────────────────────────
 const IconDownload = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -59,8 +60,29 @@ const IconTrash = () => (
   </svg>
 )
 
+const IconUpload = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="17,8 12,3 7,8"/>
+    <line x1="12" y1="3" x2="12" y2="15"/>
+  </svg>
+)
 
-// ─── Workflow icons (SVG, white, 28x28, consistent line style) ───────────────
+const IconFile = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14,2 14,8 20,8"/>
+  </svg>
+)
+
+const IconX = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+)
+
+// ─── Workflow SVG icons ───────────────────────────────────────────────────────
 const IconLesson = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -93,6 +115,7 @@ const WORKFLOW_ICONS: Record<string, () => JSX.Element> = {
   videoscript: IconVideo,
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function Home() {
   const [activeWorkflow, setActiveWorkflow] = useState<WorkflowId | null>(null)
   const [fields, setFields] = useState<Record<string, string>>({})
@@ -102,8 +125,18 @@ export default function Home() {
   const [output, setOutput] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<HistoryItem[]>([])
-  const outputRef = useRef<HTMLDivElement>(null)
-  const abortRef = useRef<AbortController | null>(null)
+
+  // Document upload state
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [documentText, setDocumentText] = useState<string>('')
+  const [documentMode, setDocumentMode] = useState<DocumentMode>('inspiration')
+  const [extraInstructions, setExtraInstructions] = useState<string>('')
+  const [extracting, setExtracting] = useState(false)
+  const [extractError, setExtractError] = useState<string>('')
+
+  const outputRef  = useRef<HTMLDivElement>(null)
+  const abortRef   = useRef<AbortController | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     try {
@@ -129,16 +162,55 @@ export default function Home() {
     setOutput(null)
     setError(null)
     setPhases([])
+    setUploadedFile(null)
+    setDocumentText('')
+    setExtraInstructions('')
+    setExtractError('')
   }
 
   const handleFieldChange = (id: string, value: string) => {
     setFields(prev => ({ ...prev, [id]: value }))
   }
 
+  // ── File upload ──────────────────────────────────────────────────────────────
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadedFile(file)
+    setDocumentText('')
+    setExtractError('')
+    setExtracting(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/extract', { method: 'POST', body: formData })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Failed to read file')
+      setDocumentText(data.text || '')
+    } catch (err) {
+      setExtractError(err instanceof Error ? err.message : 'Failed to read file')
+      setUploadedFile(null)
+    } finally {
+      setExtracting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setUploadedFile(null)
+    setDocumentText('')
+    setExtractError('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  // ── Generate ─────────────────────────────────────────────────────────────────
   const initPhases = (workflowId: WorkflowId): Phase[] =>
     (PHASES_BY_WORKFLOW[workflowId] || ['Generating']).map((label, i) => ({
-      label,
-      status: i === 0 ? 'active' : 'pending',
+      label, status: i === 0 ? 'active' : 'pending',
     }))
 
   const advancePhase = (phases: Phase[]): Phase[] => {
@@ -153,9 +225,7 @@ export default function Home() {
   const handleGenerate = async () => {
     if (!activeWorkflow || !workflow) return
 
-    const missing = workflow.fields
-      .filter(f => f.type === 'select')
-      .filter(f => !fields[f.id])
+    const missing = workflow.fields.filter(f => f.type === 'select').filter(f => !fields[f.id])
     if (missing.length > 0) {
       setError(`Select a value for: ${missing.map(f => f.label).join(', ')}`)
       return
@@ -180,7 +250,14 @@ export default function Home() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workflowId: activeWorkflow, fields }),
+        body: JSON.stringify({
+          workflowId: activeWorkflow,
+          fields,
+          documentText: documentText || undefined,
+          documentName: uploadedFile?.name || undefined,
+          documentMode: documentText ? documentMode : undefined,
+          extraInstructions: extraInstructions || undefined,
+        }),
         signal: controller.signal,
       })
 
@@ -196,25 +273,17 @@ export default function Home() {
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-
         const chunk = decoder.decode(value, { stream: true })
         fullText += chunk
         chunkCount += chunk.length
-
-        const targetPhase = Math.min(
-          Math.floor(chunkCount / phaseInterval),
-          currentPhases.length - 1
-        )
+        const targetPhase = Math.min(Math.floor(chunkCount / phaseInterval), currentPhases.length - 1)
         const currentActive = currentPhases.findIndex(p => p.status === 'active')
         if (targetPhase > currentActive) {
           currentPhases = advancePhase(currentPhases)
           setPhases([...currentPhases])
         }
-
         setOutput(fullText)
-        if (outputRef.current) {
-          outputRef.current.scrollTop = outputRef.current.scrollHeight
-        }
+        if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight
       }
 
       setPhases(currentPhases.map(p => ({ ...p, status: 'done' })))
@@ -229,7 +298,6 @@ export default function Home() {
         fields: { ...fields },
         timestamp: Date.now(),
       })
-
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : 'Generation failed')
@@ -245,15 +313,12 @@ export default function Home() {
     try {
       const topic = fields.topic || fields.coursetitle || workflow.title
       const filename = `Nerdio_${workflow.title.replace(/\s+/g, '_')}_${topic.slice(0, 40).replace(/[^a-zA-Z0-9]/g, '_')}`
-
       const res = await fetch('/api/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: output, workflowId: activeWorkflow, fields, filename }),
       })
-
       if (!res.ok) throw new Error('Download failed')
-
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -277,6 +342,10 @@ export default function Home() {
     setPhases([])
     setGenerating(false)
     setFields({})
+    setUploadedFile(null)
+    setDocumentText('')
+    setExtraInstructions('')
+    setExtractError('')
   }
 
   const handleHistoryItem = (item: HistoryItem) => {
@@ -284,9 +353,7 @@ export default function Home() {
     setFields(item.fields)
     setOutput(item.content)
     setError(null)
-    setPhases(
-      (PHASES_BY_WORKFLOW[item.workflowId] || ['Generating']).map(label => ({ label, status: 'done' as const }))
-    )
+    setPhases((PHASES_BY_WORKFLOW[item.workflowId] || ['Generating']).map(label => ({ label, status: 'done' as const })))
   }
 
   const handleClearHistory = () => {
@@ -303,13 +370,24 @@ export default function Home() {
   const canGenerate = !generating && !!workflow &&
     workflow.fields.filter(f => f.type === 'select').every(f => !!fields[f.id])
 
-  // Fields that should render as resizable textarea
   const textareaFields = ['topic', 'coursetitle', 'scope']
+
+  const modeLabelMap: Record<DocumentMode, string> = {
+    inspiration: 'Use as inspiration',
+    adapt:       'Adapt and improve',
+    basis:       'Use as foundation',
+  }
+
+  const modeDescMap: Record<DocumentMode, string> = {
+    inspiration: 'Draw from its structure, terminology, and examples to enrich new content.',
+    adapt:       'Rewrite the existing content to comply with the Nerdio style guide.',
+    basis:       'Build the new output directly from this document as the source.',
+  }
 
   return (
     <div className="app">
 
-      {/* Header — no logo */}
+      {/* Header */}
       <header className="header">
         <div className="header-text">
           <h1><span className="brand">Nerdio</span> Content Studio</h1>
@@ -326,19 +404,22 @@ export default function Home() {
           {/* Workflow selector */}
           <div className="label">Select a workflow</div>
           <div className="workflow-grid">
-            {workflows.map(w => (
-              <button
-                key={w.id}
-                data-workflow={w.id}
-                className={`wf-card${activeWorkflow === w.id ? ' active' : ''}`}
-                onClick={() => handleWorkflowSelect(w.id)}
-                disabled={generating}
-              >
-                {(() => { const Icon = WORKFLOW_ICONS[w.id]; return Icon ? <span className="wf-icon"><Icon /></span> : <span className="wf-icon">{w.icon}</span> })()}
-                <div className="wf-title">{w.title}</div>
-                <div className="wf-desc">{w.description}</div>
-              </button>
-            ))}
+            {workflows.map(w => {
+              const Icon = WORKFLOW_ICONS[w.id]
+              return (
+                <button
+                  key={w.id}
+                  data-workflow={w.id}
+                  className={`wf-card${activeWorkflow === w.id ? ' active' : ''}`}
+                  onClick={() => handleWorkflowSelect(w.id)}
+                  disabled={generating}
+                >
+                  {Icon && <span className="wf-icon"><Icon /></span>}
+                  <div className="wf-title">{w.title}</div>
+                  <div className="wf-desc">{w.description}</div>
+                </button>
+              )
+            })}
           </div>
 
           {/* Intake form */}
@@ -383,6 +464,87 @@ export default function Home() {
                     )}
                   </div>
                 ))}
+
+                {/* Extra instructions */}
+                <div className="field full">
+                  <label className="field-label">Additional instructions</label>
+                  <span className="field-hint">Specific guidance for this output — what to focus on, what to avoid, tone, length, etc.</span>
+                  <textarea
+                    className="field-textarea"
+                    placeholder="e.g. Focus on the configuration steps for Nutanix AHV. Keep the lesson under 800 words. Avoid repeating concepts from lesson 2."
+                    value={extraInstructions}
+                    onChange={e => setExtraInstructions(e.target.value)}
+                    disabled={generating}
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Document upload section */}
+              <div className="upload-section">
+                <div className="upload-label">
+                  <IconUpload />
+                  Reference document
+                  <span className="upload-optional">optional — .docx or .pdf</span>
+                </div>
+
+                {!uploadedFile && !extracting && (
+                  <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
+                    <IconFile />
+                    <span>Select a document to use as reference</span>
+                    <span className="upload-sub">Existing lesson, ADDIE, notes, or any Word or PDF file</span>
+                  </div>
+                )}
+
+                {extracting && (
+                  <div className="upload-extracting">
+                    <span className="spinner" style={{ borderTopColor: 'var(--teal)', borderColor: 'var(--teal-pale)' }} />
+                    Reading document…
+                  </div>
+                )}
+
+                {uploadedFile && documentText && !extracting && (
+                  <div className="upload-success">
+                    <div className="upload-file-info">
+                      <IconFile />
+                      <span className="upload-filename">{uploadedFile.name}</span>
+                      <span className="upload-chars">{documentText.length.toLocaleString()} characters read</span>
+                      <button className="upload-remove" onClick={handleRemoveFile} title="Remove file">
+                        <IconX />
+                      </button>
+                    </div>
+
+                    {/* Mode selector */}
+                    <div className="mode-grid">
+                      {(Object.keys(modeLabelMap) as DocumentMode[]).map(mode => (
+                        <button
+                          key={mode}
+                          className={`mode-btn${documentMode === mode ? ' active' : ''}`}
+                          onClick={() => setDocumentMode(mode)}
+                          disabled={generating}
+                        >
+                          <span className="mode-btn-label">{modeLabelMap[mode]}</span>
+                          <span className="mode-btn-desc">{modeDescMap[mode]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {extractError && (
+                  <div className="msg msg-error" style={{ marginTop: 8 }}>
+                    <span className="msg-icon">⚠</span>
+                    <span>{extractError}</span>
+                  </div>
+                )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".docx,.pdf"
+                  style={{ display: 'none' }}
+                  onChange={handleFileSelect}
+                />
               </div>
 
               <button className="btn-generate" onClick={handleGenerate} disabled={!canGenerate}>
@@ -452,7 +614,7 @@ export default function Home() {
 
         {/* Right column — history */}
         <div className="history-panel">
-          <div className="label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="label">
             <IconHistory />
             Recent outputs
           </div>
@@ -472,8 +634,7 @@ export default function Home() {
             )}
           </div>
           {history.length > 0 && (
-            <button className="btn-clear-history" onClick={handleClearHistory}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button className="btn-clear-history" onClick={handleClearHistory}>
               <IconTrash />
               Clear history
             </button>
