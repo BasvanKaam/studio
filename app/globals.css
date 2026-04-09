@@ -19,10 +19,10 @@
   --text:        #ffffff;
   --text-sec:    rgba(255,255,255,0.82);
   --text-muted:  rgba(255,255,255,0.55);
-  --border:      rgba(30,157,184,0.32);
-  --border-hi:   rgba(30,157,184,0.65);
-  --card:        rgba(15,90,125,0.55);
-  --card-hi:     rgba(18,108,150,0.75);
+  --border:      rgba(30,157,184,0.45);
+  --border-hi:   rgba(30,157,184,0.80);
+  --card:        rgba(2,28,40,0.75);
+  --card-hi:     rgba(4,40,56,0.92);
   --success:     #34d399;
   --danger:      #f87171;
   --warning:     #fbbf24;
@@ -285,7 +285,7 @@ body::before {
 
 .field-select,
 .field-input {
-  background: rgba(4,40,56,0.45);
+  background: rgba(2,20,35,0.70);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
@@ -317,7 +317,7 @@ body::before {
 .field-input::placeholder { color: var(--text-muted); }
 
 .field-textarea {
-  background: rgba(4,40,56,0.45);
+  background: rgba(2,20,35,0.70);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
@@ -435,7 +435,7 @@ body::before {
   justify-content: space-between;
   padding: 18px 28px;
   border-bottom: 1px solid var(--border);
-  background: rgba(4,40,56,0.40);
+  background: rgba(2,20,35,0.75);
   gap: 14px;
 }
 
