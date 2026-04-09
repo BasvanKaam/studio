@@ -126,6 +126,7 @@ export default function Home() {
   const [applying, setApplying] = useState(false)
   const [correctedOutput, setCorrectedOutput] = useState<string | null>(null)
   const [reviewCountdown, setReviewCountdown] = useState<number | null>(null)
+  const [funFactIndex, setFunFactIndex] = useState(0)
   const [reviewRound, setReviewRound] = useState(0)
   const [contentStats, setContentStats] = useState<{words: number, readingTime: number, sections: number, hasKC: boolean, hasObjectives: boolean, hasPrivatePreview: boolean, noteCallouts: number, practiceCallouts: number, analogyCallouts: number, totalCallouts: number, hasProcedures: boolean, paragraphs: number, avgParaWords: number} | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
@@ -351,6 +352,28 @@ export default function Home() {
   }
 
 
+
+
+  const FUN_FACTS = [
+    "Pro tip: This is exactly enough time to refill your coffee. Your future self will thank you.",
+    "Fun fact: The average IT admin reads 47 KB articles before lunch. You're already ahead.",
+    "Challenge: Find a typo in your own lesson before the reviewer does. Winner gets bragging rights.",
+    "Two minutes. That's 120 seconds. Or one very short standup meeting. Use it wisely.",
+    "Did you know? Claude has now reviewed more Nerdio lessons than any human. Probably.",
+    "This is your moment. Stretch. Breathe. Pretend you meant to schedule this break.",
+    "The reviewer is currently reading every line of your lesson very, very carefully. Or so we'd like you to believe.",
+    "Two minutes on the clock. Just enough time to question every word choice you made today.",
+    "Somewhere in Redmond, a Microsoft engineer is updating an API you just documented.",
+    "Quality takes time. Great content takes two minutes and a countdown timer.",
+  ]
+
+  useEffect(() => {
+    if (reviewCountdown === null) return
+    const interval = setInterval(() => {
+      setFunFactIndex(i => (i + 1) % FUN_FACTS.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [reviewCountdown])
 
   const calcContentStats = (text: string) => {
     const wordList = text.trim().split(/\s+/)
@@ -824,6 +847,11 @@ export default function Home() {
                         <div className="countdown-sub">Review starts in {reviewCountdown} seconds. In the meantime, see what's new with the University Assistant ↘</div>
                       </div>
                     </div>
+                    <div className="fun-fact-bar">
+                      <span className="fun-fact-icon">💡</span>
+                      <span className="fun-fact-text">{FUN_FACTS[funFactIndex]}</span>
+                    </div>
+
                     {contentStats && (
                       <div className="content-stats-grid">
                         <div className="stats-row">
