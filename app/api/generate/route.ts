@@ -1,9 +1,6 @@
 import { NextRequest } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import { buildUserPrompt, WorkflowId } from '@/lib/workflows'
 import SYSTEM_PROMPT from '@/lib/system-prompt'
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,36 +15,23 @@ export async function POST(req: NextRequest) {
 
     let userPrompt = buildUserPrompt(workflowId as WorkflowId, fields)
 
-    // Append extra instructions if provided
     if (extraInstructions?.trim()) {
       userPrompt += `\n\nAdditional instructions from the author:\n${extraInstructions.trim()}`
     }
 
-    // Append document context if provided
     if (documentText?.trim()) {
       const modeInstructions: Record<string, string> = {
         inspiration: `Use the content below as inspiration. Draw from its structure, terminology, examples, and approach where relevant. Do not copy it directly — use it to inform and enrich the new content you produce.`,
         adapt: `The content below is existing material that needs to be adapted. Rewrite and improve it to fully comply with the Nerdio L&D Style Guide, correct any style violations, improve structure and clarity, and make it publication-ready. Preserve the core content and the author's voice.`,
         basis: `The content below is the source document to use as the foundation for this output. Extract the relevant information, structure, objectives, and content from it. Build the new output directly from this material.`,
       }
-
       const modeLabel: Record<string, string> = {
         inspiration: 'DOCUMENT FOR INSPIRATION',
         adapt: 'DOCUMENT TO ADAPT',
         basis: 'SOURCE DOCUMENT — USE AS FOUNDATION',
       }
-
       const mode = documentMode || 'inspiration'
-      userPrompt += `
-
----
-
-${modeLabel[mode] || 'REFERENCE DOCUMENT'} (${documentName || 'uploaded file'}):
-${modeInstructions[mode] || modeInstructions.inspiration}
-
-${documentText.trim()}
-
----`
+      userPrompt += `\n\n---\n\n${modeLabel[mode] || 'REFERENCE DOCUMENT'} (${documentName || 'uploaded file'}):\n${modeInstructions[mode] || modeInstructions.inspiration}\n\n${documentText.trim()}\n\n---`
     }
 
     const encoder = new TextEncoder()
@@ -55,18 +39,79 @@ ${documentText.trim()}
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const anthropicStream = await client.messages.stream({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 8000,
-            system: SYSTEM_PROMPT,
-            messages: [{ role: 'user', content: userPrompt }],
+          // Call Anthropic API directly with web_search tool enabled
+          const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'anthropic-version': '2023-06-01',
+              'anthropic-beta': 'interleaved-thinking-2025-05-14',
+              'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+            },
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 8000,
+              system: SYSTEM_PROMPT,
+              tools: [
+                {
+                  type: 'web_search_20250305',
+                  name: 'web_search',
+                  max_uses: 5,
+                },
+              ],
+              messages: [{ role: 'user', content: userPrompt }],
+              stream: true,
+            }),
           })
 
-          for await (const chunk of anthropicStream) {
-            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-              controller.enqueue(encoder.encode(chunk.delta.text))
+          if (!response.ok) {
+            const err = await response.text()
+            controller.enqueue(encoder.encode(`\n\n[ERROR: ${err}]`))
+            controller.close()
+            return
+          }
+
+          const reader = response.body?.getReader()
+          const decoder = new TextDecoder()
+          if (!reader) throw new Error('No response stream')
+
+          let buffer = ''
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || ''
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue
+              const data = line.slice(6).trim()
+              if (data === '[DONE]') continue
+
+              try {
+                const event = JSON.parse(data)
+
+                // Stream text deltas
+                if (event.type === 'content_block_delta') {
+                  if (event.delta?.type === 'text_delta' && event.delta.text) {
+                    controller.enqueue(encoder.encode(event.delta.text))
+                  }
+                }
+
+                // Signal when web search starts
+                if (event.type === 'content_block_start') {
+                  if (event.content_block?.type === 'tool_use' && event.content_block?.name === 'web_search') {
+                    controller.enqueue(encoder.encode('\n[Searching Nerdio documentation…]\n'))
+                  }
+                }
+              } catch {
+                // Skip malformed lines
+              }
             }
           }
+
           controller.close()
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Generation failed'
