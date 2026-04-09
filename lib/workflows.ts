@@ -177,7 +177,9 @@ If lesson position is "1 — Introduction to this course": no knowledge check, n
 If lesson position is "2 — Concepts and architecture": no knowledge check, no procedures. Conceptual only.
 If lesson position is "3 or later": include at least one knowledge check.
 
-Apply every Nerdio L&D style rule without exception.${AUDIT_INSTRUCTION}`
+Apply every Nerdio L&D style rule without exception.
+
+WORD COUNT: If a word limit is specified in the additional instructions or scope, treat it as a hard maximum. Stop adding content before reaching that limit. A lesson that is 10% under the limit is better than one that exceeds it.${AUDIT_INSTRUCTION}`
 
     case 'addie':
       return `Create a complete ADDIE instructional design document.
