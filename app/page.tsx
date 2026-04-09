@@ -498,8 +498,9 @@ export default function Home() {
 
                 {extracting && (
                   <div className="upload-extracting">
-                    <span className="spinner" style={{ borderTopColor: 'var(--teal)', borderColor: 'var(--teal-pale)' }} />
-                    Reading document…
+                    <div className="upload-extracting-icon" />
+                    <span>Reading document…</span>
+                    <span className="upload-extracting-sub">Extracting text — this takes a few seconds</span>
                   </div>
                 )}
 
