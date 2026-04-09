@@ -7,7 +7,7 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
-    const { workflowId, fields } = await req.json()
+    const { workflowId, fields, documentText, documentName, documentMode, extraInstructions } = await req.json()
 
     if (!workflowId || !fields) {
       return new Response(
@@ -16,7 +16,40 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const userPrompt = buildUserPrompt(workflowId as WorkflowId, fields)
+    let userPrompt = buildUserPrompt(workflowId as WorkflowId, fields)
+
+    // Append extra instructions if provided
+    if (extraInstructions?.trim()) {
+      userPrompt += `\n\nAdditional instructions from the author:\n${extraInstructions.trim()}`
+    }
+
+    // Append document context if provided
+    if (documentText?.trim()) {
+      const modeInstructions: Record<string, string> = {
+        inspiration: `Use the content below as inspiration. Draw from its structure, terminology, examples, and approach where relevant. Do not copy it directly — use it to inform and enrich the new content you produce.`,
+        adapt: `The content below is existing material that needs to be adapted. Rewrite and improve it to fully comply with the Nerdio L&D Style Guide, correct any style violations, improve structure and clarity, and make it publication-ready. Preserve the core content and the author's voice.`,
+        basis: `The content below is the source document to use as the foundation for this output. Extract the relevant information, structure, objectives, and content from it. Build the new output directly from this material.`,
+      }
+
+      const modeLabel: Record<string, string> = {
+        inspiration: 'DOCUMENT FOR INSPIRATION',
+        adapt: 'DOCUMENT TO ADAPT',
+        basis: 'SOURCE DOCUMENT — USE AS FOUNDATION',
+      }
+
+      const mode = documentMode || 'inspiration'
+      userPrompt += `
+
+---
+
+${modeLabel[mode] || 'REFERENCE DOCUMENT'} (${documentName || 'uploaded file'}):
+${modeInstructions[mode] || modeInstructions.inspiration}
+
+${documentText.trim()}
+
+---`
+    }
+
     const encoder = new TextEncoder()
 
     const stream = new ReadableStream({
@@ -30,14 +63,10 @@ export async function POST(req: NextRequest) {
           })
 
           for await (const chunk of anthropicStream) {
-            if (
-              chunk.type === 'content_block_delta' &&
-              chunk.delta.type === 'text_delta'
-            ) {
+            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
               controller.enqueue(encoder.encode(chunk.delta.text))
             }
           }
-
           controller.close()
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Generation failed'
