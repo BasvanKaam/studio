@@ -93,7 +93,7 @@ export const workflows: Workflow[] = [
       { id: 'product', label: 'Product', type: 'select', options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP', 'Both'] },
       { id: 'difficulty', label: 'Difficulty level (sets Bloom distribution)', type: 'select', options: ['Introductory — 60% L1 / 40% L2', 'Intermediate — 30% L1 / 50% L2 / 20% L3', 'Advanced — 15% L1 / 40% L2 / 45% L3'] },
       { id: 'questioncount', label: 'Number of questions', type: 'select', options: ['10', '15', '20', '25', 'Claude to decide'] },
-      { id: 'bloomoverride', label: 'Bloom override', type: 'select', options: ['Use difficulty default', 'More recall (L1 heavy)', 'More application (L2 heavy)', 'More analysis (L3 heavy)', 'Equal mix'] },
+      { id: 'bloomoverride', label: 'Bloom override', type: 'select', options: ['Use difficulty default', 'More recall (L1 heavy)', 'More application (L2 heavy)', 'More analysis (L3 heavy)', 'Equal mix'], placeholder: 'Use difficulty default' },
       { id: 'qtypes', label: 'Question types', type: 'select', options: ['All types — single answer, select two, true/false, fill in the blank', 'Single answer + true/false only', 'Single answer only'] },
       { id: 'scope', label: 'Pool scope', type: 'select', options: ['Full course', 'Single lesson'] },
     ],
@@ -214,7 +214,7 @@ Course title: ${fields.coursetitle}
 Product: ${fields.product}
 Difficulty level: ${fields.difficulty}
 Questions requested: ${fields.questioncount}
-Bloom distribution: ${fields.bloomoverride}
+Bloom distribution: ${fields.bloomoverride || 'Use difficulty default'}
 Question types: ${fields.qtypes}
 Pool scope: ${fields.scope}
 
