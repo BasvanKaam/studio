@@ -46,20 +46,19 @@ export async function POST(req: NextRequest) {
     const isQuestionPool = workflowId === 'questionpool'
     const isAddie = workflowId === 'addie'
     const maxTokens = isQuestionPool ? 12000 : isAddie ? 10000 : 8000
-    const useSystemPrompt = !isQuestionPool && !isAddie
-    const useTools = !isQuestionPool && !isAddie
+    const needsTools = !isQuestionPool && !isAddie
+    const needsSystem = !isQuestionPool && !isAddie
 
+    // Build request body — ADDIE and question pool skip system prompt and tools
+    // to avoid context overflow (they have full instructions in the user prompt)
     const requestBody: Record<string, unknown> = {
       model: 'claude-sonnet-4-20250514',
       max_tokens: maxTokens,
-      system: useSystemPrompt ? SYSTEM_PROMPT : '',
       messages: [{ role: 'user', content: userPrompt }],
       stream: true,
     }
-
-    if (useTools) {
-      requestBody.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }]
-    }
+    if (needsSystem) requestBody.system = SYSTEM_PROMPT
+    if (needsTools) requestBody.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }]
 
     const encoder = new TextEncoder()
 
