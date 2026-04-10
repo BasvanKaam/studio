@@ -20,18 +20,29 @@ export async function POST(req: NextRequest) {
     }
 
     if (documentText?.trim()) {
-      const modeInstructions: Record<string, string> = {
-        inspiration: `Use the content below as inspiration. Draw from its structure, terminology, examples, and approach where relevant. Do not copy it directly — use it to inform and enrich the new content you produce.`,
-        adapt: `The content below is existing material that needs to be adapted. Rewrite and improve it to fully comply with the Nerdio L&D Style Guide, correct any style violations, improve structure and clarity, and make it publication-ready. Preserve the core content and the author's voice.`,
-        basis: `The content below is the source document to use as the foundation for this output. Extract the relevant information, structure, objectives, and content from it. Build the new output directly from this material.`,
+      // Cap document text to avoid exceeding context limits (~60k chars ≈ ~15k tokens)
+      const MAX_DOC_CHARS = 60000
+      const docText = documentText.trim().length > MAX_DOC_CHARS
+        ? documentText.trim().slice(0, MAX_DOC_CHARS) + '\n\n[Document truncated to fit context limit]'
+        : documentText.trim()
+
+      if (workflowId === 'questionpool') {
+        // For question pools, always treat uploaded content as source lessons
+        userPrompt += `\n\n---\n\nSOURCE LESSONS (${documentName || 'uploaded lessons'}):\nUse the lesson content below as the primary and only source for generating questions. Base every question strictly on what is taught in these lessons. Do not add content that is not present in the lessons.\n\n${docText}\n\n---`
+      } else {
+        const modeInstructions: Record<string, string> = {
+          inspiration: `Use the content below as inspiration. Draw from its structure, terminology, examples, and approach where relevant. Do not copy it directly — use it to inform and enrich the new content you produce.`,
+          adapt: `The content below is existing material that needs to be adapted. Rewrite and improve it to fully comply with the Nerdio L&D Style Guide, correct any style violations, improve structure and clarity, and make it publication-ready. Preserve the core content and the author's voice.`,
+          basis: `The content below is the source document to use as the foundation for this output. Extract the relevant information, structure, objectives, and content from it. Build the new output directly from this material.`,
+        }
+        const modeLabel: Record<string, string> = {
+          inspiration: 'DOCUMENT FOR INSPIRATION',
+          adapt: 'DOCUMENT TO ADAPT',
+          basis: 'SOURCE DOCUMENT — USE AS FOUNDATION',
+        }
+        const mode = documentMode || 'inspiration'
+        userPrompt += `\n\n---\n\n${modeLabel[mode] || 'REFERENCE DOCUMENT'} (${documentName || 'uploaded file'}):\n${modeInstructions[mode] || modeInstructions.inspiration}\n\n${docText}\n\n---`
       }
-      const modeLabel: Record<string, string> = {
-        inspiration: 'DOCUMENT FOR INSPIRATION',
-        adapt: 'DOCUMENT TO ADAPT',
-        basis: 'SOURCE DOCUMENT — USE AS FOUNDATION',
-      }
-      const mode = documentMode || 'inspiration'
-      userPrompt += `\n\n---\n\n${modeLabel[mode] || 'REFERENCE DOCUMENT'} (${documentName || 'uploaded file'}):\n${modeInstructions[mode] || modeInstructions.inspiration}\n\n${documentText.trim()}\n\n---`
     }
 
     const encoder = new TextEncoder()
@@ -49,13 +60,13 @@ export async function POST(req: NextRequest) {
             },
             body: JSON.stringify({
               model: 'claude-sonnet-4-20250514',
-              max_tokens: workflowId === 'questionpool' ? 16000 : 8000,
+              max_tokens: workflowId === 'questionpool' ? 12000 : 8000,
               system: SYSTEM_PROMPT,
               tools: [
                 {
                   type: 'web_search_20250305',
                   name: 'web_search',
-                  max_uses: workflowId === 'questionpool' ? 3 : 5,
+                  max_uses: workflowId === 'questionpool' ? 0 : 5,
                 },
               ],
               messages: [{ role: 'user', content: userPrompt }],
