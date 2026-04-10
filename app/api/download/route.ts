@@ -221,7 +221,8 @@ function parseMarkdown(markdown: string): (Paragraph | Table)[] {
   const lines  = markdown.split('\n')
   const result: (Paragraph | Table)[] = []
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     if (line.startsWith('# '))  { result.push(p([bld(line.slice(2), 34, NAVY)], { spacing: { before: 0, after: 100, ...LINE_SPACING } })); continue }
     if (line.startsWith('## ')) { result.push(h2(line.slice(3))); continue }
     if (line.startsWith('### ')) { result.push(h3(line.slice(4))); continue }
@@ -285,7 +286,8 @@ function parseClean(markdown: string): (Paragraph | Table)[] {
   const lines = cleaned.split('\n')
   const result: (Paragraph | Table)[] = []
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     // H1
     if (line.startsWith('# ')) {
       result.push(new Paragraph({
@@ -367,6 +369,43 @@ function parseClean(markdown: string): (Paragraph | Table)[] {
         indent: { left: 720 },
         border: { left: { style: BorderStyle.SINGLE, size: 12, color: 'AAAAAA' } },
       }))
+      continue
+    }
+    // Markdown table row — collect and render as Word table
+    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+      // Skip separator rows like |---|---|
+      if (/^[\s|:-]+$/.test(line)) continue
+      // Collect consecutive table rows
+      const tableLines: string[] = [line]
+      while (i + 1 < lines.length && lines[i + 1].trim().startsWith('|') && lines[i + 1].trim().endsWith('|')) {
+        i++
+        if (!/^[\s|:-]+$/.test(lines[i])) tableLines.push(lines[i])
+      }
+      // Parse rows
+      const rows = tableLines.map(r =>
+        r.split('|').slice(1, -1).map(cell => cell.trim())
+      )
+      if (rows.length > 0) {
+        const colCount = rows[0].length
+        const colWidth = Math.floor(CW / colCount)
+        const colWidths = Array(colCount).fill(colWidth)
+        result.push(new Table({
+          width: { size: CW, type: WidthType.DXA },
+          columnWidths: colWidths,
+          rows: rows.map((row, ri) => new TableRow({
+            children: row.map((cell, ci) => new TableCell({
+              borders: allB(BORDER_GRAY, 3),
+              width: { size: colWidths[ci], type: WidthType.DXA },
+              shading: { fill: ri === 0 ? 'F2F2F2' : ci % 2 === 0 ? 'FFFFFF' : 'FAFAFA', type: ShadingType.CLEAR },
+              margins: { top: 80, bottom: 80, left: 160, right: 160 },
+              children: [new Paragraph({
+                children: [new TextRun({ text: cell, font: 'Arial', size: 20, bold: ri === 0, color: '000000' })],
+              })],
+            })),
+          })),
+        }))
+        result.push(new Paragraph({ children: [], spacing: { before: 80, after: 0 } }))
+      }
       continue
     }
     // Empty line
@@ -656,7 +695,8 @@ function extractOutlineRows(content: string): string[][] {
   const rows: string[][] = []
   const lines = content.split('\n')
   let inOutline = false
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     if (/course outline|lesson outline/i.test(line)) { inOutline = true; continue }
     if (inOutline && line.startsWith('## ')) { inOutline = false; continue }
     if (inOutline && /^\d+\.?\s/.test(line)) {
@@ -718,7 +758,8 @@ function parseAddieContent(content: string): Record<string, string[]> {
     'to-do': 'todo',
   }
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     const lower = line.toLowerCase().replace(/[*#_]/g, '').trim()
     
     // Skip quality audit section
@@ -1045,7 +1086,8 @@ function extractTopics(content: string): { title: string; points: string[]; note
   const lines = content.split('\n')
   let current: { title: string; points: string[]; notes?: string } | null = null
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     if (/^##\s*(Topic|Part 2)/i.test(line) || /^###\s*Topic/i.test(line) || /^##\s*\d+\./.test(line)) {
       if (current) topics.push(current)
       current = { title: line.replace(/^#+\s*(Topic\s*\d*:?\s*|\d+\.\s*|Part 2[^:]*:\s*)/i, '').trim(), points: [] }
