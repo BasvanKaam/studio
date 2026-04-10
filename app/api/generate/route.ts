@@ -58,20 +58,24 @@ export async function POST(req: NextRequest) {
               'anthropic-version': '2023-06-01',
               'x-api-key': process.env.ANTHROPIC_API_KEY || '',
             },
-            body: JSON.stringify({
-              model: 'claude-sonnet-4-20250514',
-              max_tokens: workflowId === 'questionpool' ? 12000 : 8000,
-              system: SYSTEM_PROMPT,
-              tools: [
-                {
-                  type: 'web_search_20250305',
-                  name: 'web_search',
-                  max_uses: workflowId === 'questionpool' ? 0 : 5,
-                },
-              ],
-              messages: [{ role: 'user', content: userPrompt }],
-              stream: true,
-            }),
+            body: JSON.stringify(
+              workflowId === 'questionpool'
+                ? {
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 12000,
+                    system: SYSTEM_PROMPT,
+                    messages: [{ role: 'user', content: userPrompt }],
+                    stream: true,
+                  }
+                : {
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 8000,
+                    system: SYSTEM_PROMPT,
+                    tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
+                    messages: [{ role: 'user', content: userPrompt }],
+                    stream: true,
+                  }
+            ),
           })
 
           if (!response.ok) {
