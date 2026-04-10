@@ -190,6 +190,17 @@ Audience knowledge level: ${fields.level}
 Lesson position: ${fields.lessonNumber}
 Scope: ${fields.scope || 'Use your judgement based on the topic.'}
 
+MANDATORY FIRST STEP — DO THIS BEFORE WRITING ANY CONTENT:
+Search the Nerdio Help Center for this topic before writing a single word of the lesson.
+- If product is "Nerdio Manager for Enterprise": search nmehelp.getnerdio.com
+- If product is "Nerdio Manager for MSP": search nmmhelp.getnerdio.com
+- Search for the topic and read the relevant KB articles
+- Base all feature names, UI navigation paths, and technical claims on what you find in the KB
+- Do not invent component names, architecture details, or feature behaviour that you cannot verify in the KB
+- If a claim cannot be verified in the KB, flag it with ⚠ SME review required
+
+Only after completing the KB search: write the lesson.
+
 Deliver the full lesson text structured exactly as follows:
 1. Title (noun phrase, sentence-style capitalisation, never a gerund or "How to…")
 2. Learning objectives (2–4 items, Bloom's verbs, introduced with "After completing this lesson, you'll be able to:")
@@ -258,6 +269,15 @@ Topic: ${fields.topic}
 Format: ${fields.format}
 Audience knowledge level: ${fields.level}
 Target duration: ${fields.duration}
+
+MANDATORY FIRST STEP — DO THIS BEFORE WRITING ANY CONTENT:
+Search the Nerdio Help Center for this topic before writing anything.
+- If product is "Nerdio Manager for Enterprise": search nmehelp.getnerdio.com
+- If product is "Nerdio Manager for MSP": search nmmhelp.getnerdio.com
+- Base all UI steps, feature names, and navigation paths on what you find in the KB
+- Do not invent details that cannot be verified in the KB
+
+Only after completing the KB search: write the script.
 
 Structure:
 - Part 1: Voice-over intro (under 60 seconds) — greet, name the topic, set expectations
