@@ -642,8 +642,33 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
   const audience    = fields.audience   || 'IT admins / engineers'
   const author      = fields.author     || ''
 
-  // Parse Claude's generated content into structured sections
+  // Try to parse JSON output from Claude
+  let json: Record<string, unknown> = {}
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    if (jsonMatch) json = JSON.parse(jsonMatch[0])
+  } catch { /* fall back to empty */ }
+
+  const g = (key: string): string => {
+    const val = json[key]
+    if (typeof val === 'string') return val
+    if (Array.isArray(val)) return val.join('\n')
+    return ''
+  }
+  const ga = (key: string): string[] => {
+    const val = json[key]
+    if (Array.isArray(val)) return val.map(String)
+    if (typeof val === 'string' && val.length > 0) return [val]
+    return []
+  }
+
+  // Parse Claude's generated content into structured sections (fallback)
   const parsed = parseAddieContent(content)
+  const gf = (jsonKey: string, parseKey: string): string[] => {
+    const fromJson = ga(jsonKey)
+    if (fromJson.length > 0) return fromJson
+    return parsed[parseKey] || []
+  }
 
   const meta: [string, string][] = [
     ['Course title',          courseTitle],
@@ -658,7 +683,12 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
     ['Last updated',          new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })],
   ]
 
-  const outRows = extractOutlineRows(content)
+  // Use JSON outline rows if available, fall back to text parsing
+  const jsonOutlineRows = Array.isArray(json['outlineRows'])
+    ? (json['outlineRows'] as Array<{num: string, title: string, covers: string, media: string, kc: string}>)
+        .map(r => [r.num || '', r.title || '', r.covers || '', r.media || 'Text', r.kc || 'Yes'])
+    : null
+  const outRows = jsonOutlineRows || extractOutlineRows(content)
   const title   = `ADDIE — ${courseTitle}`
 
   // Helper: wrap long text into lines for input fields
@@ -671,23 +701,23 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
     // A — ANALYZE
     phaseBanner('A', 'Analyze', 'Context, audience, and scope.', 'A'),
     inputField('Parent goal', 'Why does this training exist? What business problem does it solve?',
-      toLines(getSection(parsed, 'parentGoal').join('\n')), true),
+      gf('parentGoal', 'parentGoal').length > 0 ? gf('parentGoal', 'parentGoal') : (g('parentGoal') ? [g('parentGoal')] : []), true),
     inputRow2([
       { label: 'Audience — roles', hint: 'Who is this for?',
-        examples: getSection(parsed, 'audience').length > 0 ? getSection(parsed, 'audience') : [audience] },
+        examples: gf('audienceRoles', 'audience').length > 0 ? gf('audienceRoles', 'audience') : [audience] },
       { label: 'Assumed knowledge', hint: 'What do they already know?',
-        examples: getSection(parsed, 'assumedKnowledge') },
+        examples: gf('assumedKnowledge', 'assumedKnowledge') },
     ]),
     p([bld('Scope', 20, DARK_TEXT), new TextRun({ text: '   Optional', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 160, after: 40 } }),
     inputRow2([
-      { label: 'In scope',     hint: '', examples: getSection(parsed, 'inScope') },
-      { label: 'Out of scope', hint: '', examples: getSection(parsed, 'outOfScope') },
+      { label: 'In scope',     hint: '', examples: gf('inScope', 'inScope') },
+      { label: 'Out of scope', hint: '', examples: gf('outOfScope', 'outOfScope') },
     ]),
     sectionDiv('Learning objectives'),
     p([bld('By the end of this course, learners will be able to:', 20, DARK_TEXT)], { spacing: { before: 100, after: 40 } }),
-    inputField('', '', getSection(parsed, 'objectives'), true, true),
+    inputField('', '', gf('objectives', 'objectives'), true, true),
     inputField('Core concepts covered', 'Technologies, features, and terms this training introduces',
-      getSection(parsed, 'coreConcepts'), false, true),
+      gf('coreConcepts', 'coreConcepts'), false, true),
     sectionDiv('Course outline'),
     p([new TextRun({ text: 'Generated from course content — review and update as needed.', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 60, after: 100 } }),
     outlineTable(outRows),
@@ -696,12 +726,12 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
     // D — DESIGN
     phaseBanner('D', 'Design', 'Sequence, media strategy, and assessment.', 'D'),
     inputField('Core flow of the training', 'Why is the content in this order?',
-      getSection(parsed, 'coreFlow'), true, false, true),
+      gf('coreFlow', 'coreFlow').length > 0 ? gf('coreFlow', 'coreFlow') : (g('coreFlow') ? [g('coreFlow')] : []), true, false, true),
     inputRow2([
       { label: 'Which lessons need a video?', hint: 'Names or notes',
-        examples: getSection(parsed, 'videosNeeded') },
+        examples: gf('videosNeeded', 'videosNeeded') },
       { label: 'Who records the videos?', hint: 'Name(s) or TBD',
-        examples: getSection(parsed, 'videoRecorder') },
+        examples: gf('videoRecorder', 'videoRecorder') },
     ]),
     inputRow2([
       { label: 'Final assessment — questions', hint: 'Default: 20', examples: ['20'] },
@@ -709,14 +739,14 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
       { label: 'Retake attempts',                   hint: 'Default: 2',   examples: ['2'] },
     ]),
     inputField('Knowledge check strategy', 'Types per lesson, or leave blank',
-      getSection(parsed, 'kcStrategy')),
+      gf('kcStrategy', 'kcStrategy')),
     sectionDiv('Success measurement'),
     inputRow2([
-      { label: 'Target completion rate',  hint: '', examples: getSection(parsed, 'completionRate') },
-      { label: 'Target assessment score', hint: '', examples: getSection(parsed, 'assessmentScore') },
+      { label: 'Target completion rate',  hint: '', examples: gf('completionRate', 'completionRate') },
+      { label: 'Target assessment score', hint: '', examples: gf('assessmentScore', 'assessmentScore') },
     ]),
     inputField('Additional success metrics', 'Leave blank if none',
-      getSection(parsed, 'additionalMetrics')),
+      gf('additionalMetrics', 'additionalMetrics')),
     pb(),
 
     // D — DEVELOP
@@ -735,7 +765,7 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
     // I — IMPLEMENT
     phaseBanner('I', 'Implement', 'Launch plan and Docebo configuration.', 'I'),
     inputField('Launch plan', 'Where will this be published, and how will learners be informed?',
-      getSection(parsed, 'launchPlan'), true),
+      gf('launchPlan', 'launchPlan').length > 0 ? gf('launchPlan', 'launchPlan') : (g('launchPlan') ? [g('launchPlan')] : []), true),
     sectionDiv('Docebo configuration'),
     sp(60),
     kvTable([
@@ -745,8 +775,8 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
       ['Completion criteria', `All ${outRows.length} lessons viewed + final assessment passed at 80% or above`],
     ]),
     inputRow2([
-      { label: 'First check-in after launch',  hint: '', examples: getSection(parsed, 'firstCheckin') },
-      { label: 'Planned next content review',  hint: '', examples: getSection(parsed, 'nextReview') },
+      { label: 'First check-in after launch',  hint: '', examples: gf('firstCheckin', 'firstCheckin') },
+      { label: 'Planned next content review',  hint: '', examples: gf('nextReview', 'nextReview') },
     ]),
     pb(),
 
