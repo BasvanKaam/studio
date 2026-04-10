@@ -1,4 +1,4 @@
-export type WorkflowId = 'lesson' | 'addie' | 'videoscript'
+export type WorkflowId = 'lesson' | 'addie' | 'videoscript' | 'questionpool'
 
 export interface WorkflowField {
   id: string
@@ -18,7 +18,7 @@ export interface Workflow {
   fields: WorkflowField[]
 }
 
-// Audit block appended to every prompt
+// Audit block appended to lesson and video script prompts
 export const AUDIT_INSTRUCTION = `
 
 ---
@@ -50,40 +50,11 @@ export const workflows: Workflow[] = [
     description: 'Write a complete lesson in Nerdio house style — intro, body sections, knowledge check, and branded .docx download.',
     icon: '📄',
     fields: [
-      {
-        id: 'product',
-        label: 'Product',
-        type: 'select',
-        options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP', 'Both'],
-      },
-      {
-        id: 'topic',
-        label: 'Lesson topic',
-        hint: 'Be specific — e.g. "Configuring FSLogix profile containers" not just "FSLogix"',
-        type: 'text',
-        placeholder: 'e.g. Configuring FSLogix profile containers',
-        fullWidth: true,
-      },
-      {
-        id: 'level',
-        label: 'Audience knowledge level',
-        type: 'select',
-        options: ['Introductory', 'Intermediate', 'Advanced'],
-      },
-      {
-        id: 'lessonNumber',
-        label: 'Lesson number in course',
-        type: 'select',
-        options: ['1 — Introduction to this course', '2 — Concepts and architecture', '3 or later — Procedural content'],
-      },
-      {
-        id: 'scope',
-        label: 'Scope',
-        hint: 'What is in scope? What is explicitly out of scope?',
-        type: 'text',
-        placeholder: 'e.g. Dynamic host pools only. Personal host pools are out of scope.',
-        fullWidth: true,
-      },
+      { id: 'product', label: 'Product', type: 'select', options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP', 'Both'] },
+      { id: 'topic', label: 'Lesson topic', hint: 'Be specific — e.g. "Configuring FSLogix profile containers" not just "FSLogix"', type: 'text', placeholder: 'e.g. Configuring FSLogix profile containers', fullWidth: true },
+      { id: 'level', label: 'Audience knowledge level', type: 'select', options: ['Introductory', 'Intermediate', 'Advanced'] },
+      { id: 'lessonNumber', label: 'Lesson number in course', type: 'select', options: ['1 — Introduction to this course', '2 — Concepts and architecture', '3 or later — Procedural content'] },
+      { id: 'scope', label: 'Scope', hint: 'What is in scope? What is explicitly out of scope?', type: 'text', placeholder: 'e.g. Dynamic host pools only. Personal host pools are out of scope.', fullWidth: true },
     ],
   },
   {
@@ -92,44 +63,11 @@ export const workflows: Workflow[] = [
     description: 'Generate a complete ADDIE instructional design document — all five phases, branded cover, and full table structure.',
     icon: '📐',
     fields: [
-      {
-        id: 'coursetitle',
-        label: 'Course title',
-        type: 'text',
-        placeholder: 'e.g. Auto-scaling in Nerdio Manager for Enterprise',
-        fullWidth: true,
-      },
-      {
-        id: 'product',
-        label: 'Product',
-        type: 'select',
-        options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP', 'Other'],
-      },
-      {
-        id: 'audience',
-        label: 'Target audience',
-        type: 'select',
-        options: ['IT admins / engineers', 'MSP partners / resellers', 'End users', 'Management / sales'],
-      },
-      {
-        id: 'phases',
-        label: 'ADDIE phases needed',
-        type: 'select',
-        options: [
-          'Complete document',
-          'A — Analyze only',
-          'D — Design only',
-          'D — Develop only',
-          'I — Implement only',
-          'E — Examine only',
-        ],
-      },
-      {
-        id: 'author',
-        label: 'Author name',
-        type: 'text',
-        placeholder: 'e.g. Bas van Kaam',
-      },
+      { id: 'coursetitle', label: 'Course title', type: 'text', placeholder: 'e.g. Auto-scaling in Nerdio Manager for Enterprise', fullWidth: true },
+      { id: 'product', label: 'Product', type: 'select', options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP', 'Other'] },
+      { id: 'audience', label: 'Target audience', type: 'select', options: ['IT admins / engineers', 'MSP partners / resellers', 'End users', 'Management / sales'] },
+      { id: 'phases', label: 'ADDIE phases needed', type: 'select', options: ['Complete document', 'A — Analyze only', 'D — Design only', 'D — Develop only', 'I — Implement only', 'E — Examine only'] },
+      { id: 'author', label: 'Author name', type: 'text', placeholder: 'e.g. Bas van Kaam' },
     ],
   },
   {
@@ -138,43 +76,25 @@ export const workflows: Workflow[] = [
     description: 'Write a structured video script — voice-over intro, per-topic screen recording blocks, and production notes.',
     icon: '🎬',
     fields: [
-      {
-        id: 'product',
-        label: 'Product',
-        type: 'select',
-        options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP'],
-      },
-      {
-        id: 'topic',
-        label: 'Video topic',
-        hint: 'What feature or task does this video cover?',
-        type: 'text',
-        placeholder: 'e.g. Configuring an auto-scaling profile',
-        fullWidth: true,
-      },
-      {
-        id: 'format',
-        label: 'Video format',
-        type: 'select',
-        options: [
-          'Voice-over intro + screen recording',
-          'On-camera talking head',
-          'Voice-over only',
-          'Intro or outro',
-        ],
-      },
-      {
-        id: 'level',
-        label: 'Audience knowledge level',
-        type: 'select',
-        options: ['Introductory', 'Intermediate', 'Advanced'],
-      },
-      {
-        id: 'duration',
-        label: 'Target duration',
-        type: 'select',
-        options: ['Under 5 minutes', '5–8 minutes', '8–12 minutes'],
-      },
+      { id: 'product', label: 'Product', type: 'select', options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP'] },
+      { id: 'topic', label: 'Video topic', hint: 'What feature or task does this video cover?', type: 'text', placeholder: 'e.g. Configuring an auto-scaling profile', fullWidth: true },
+      { id: 'format', label: 'Video format', type: 'select', options: ['Voice-over intro + screen recording', 'On-camera talking head', 'Voice-over only', 'Intro or outro'] },
+      { id: 'level', label: 'Audience knowledge level', type: 'select', options: ['Introductory', 'Intermediate', 'Advanced'] },
+      { id: 'duration', label: 'Target duration', type: 'select', options: ['Under 5 minutes', '5–8 minutes', '8–12 minutes'] },
+    ],
+  },
+  {
+    id: 'questionpool',
+    title: 'Question pool',
+    description: 'Generate a complete, Bloom-aligned question pool for a Nerdio University course — multiple question types, KB-verified, style-compliant.',
+    icon: '❓',
+    fields: [
+      { id: 'coursetitle', label: 'Course title', type: 'text', placeholder: 'e.g. Auto-scaling in Nerdio Manager for Enterprise', fullWidth: true },
+      { id: 'product', label: 'Product', type: 'select', options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP', 'Both', 'Other'] },
+      { id: 'audience', label: 'Target audience', type: 'select', options: ['IT admins / engineers', 'MSP partners / resellers', 'End users', 'Management / sales'] },
+      { id: 'difficulty', label: 'Course difficulty', type: 'select', options: ['Introductory', 'Intermediate', 'Advanced'] },
+      { id: 'questioncount', label: 'Number of questions', type: 'select', options: ['Minimum (10)', 'Medium (15–20)', 'Large (25+)', 'Claude to decide based on objectives'] },
+      { id: 'scope', label: 'Pool scope', type: 'select', options: ['Full course (multiple lessons)', 'Single lesson'] },
     ],
   },
 ]
@@ -194,7 +114,6 @@ MANDATORY FIRST STEP — DO THIS BEFORE WRITING ANY CONTENT:
 Search the Nerdio Help Center for this topic before writing a single word of the lesson.
 - If product is "Nerdio Manager for Enterprise": search nmehelp.getnerdio.com
 - If product is "Nerdio Manager for MSP": search nmmhelp.getnerdio.com
-- Search for the topic and read the relevant KB articles
 - Base all feature names, UI navigation paths, and technical claims on what you find in the KB
 - Do not invent component names, architecture details, or feature behaviour that you cannot verify in the KB
 - If a claim cannot be verified in the KB, flag it with ⚠ SME review required
@@ -286,7 +205,94 @@ Structure:
 
 Topic count by duration: under 5 min = 1–2 topics, 5–8 min = 2–3 topics, 8–12 min = 4–5 topics.
 Natural spoken language throughout. No "Now I'm going to show you." No filler phrases.${AUDIT_INSTRUCTION}`
+
+    case 'questionpool':
+      return `You are the Nerdio Question Pool Studio. Generate a complete, publication-ready question pool.
+
+Course title: ${fields.coursetitle}
+Product: ${fields.product}
+Audience: ${fields.audience}
+Difficulty level: ${fields.difficulty}
+Questions requested: ${fields.questioncount}
+Pool scope: ${fields.scope}
+
+MANDATORY FIRST STEP: Search the Nerdio Help Center before writing any questions.
+- Nerdio Manager for Enterprise: search nmehelp.getnerdio.com
+- Nerdio Manager for MSP: search nmmhelp.getnerdio.com
+- Base all correct answers and distractors on verified KB content
+- If lesson documents were uploaded, use them as the primary source
+- Flag unverifiable claims with: SME review required
+
+BLOOM DISTRIBUTION — apply strictly based on difficulty:
+Introductory: 60% L1 Recall, 40% L2 Apply, 0% L3
+Intermediate: 30% L1, 50% L2, 20% L3 Analyze
+Advanced: 15% L1, 40% L2, 45% L3
+
+QUESTION TYPE MIX:
+- Single answer a/b/c/d: 60-70%
+- Select two (add "(Select two)" at end of stem): 10-15%
+- True/False: 10-15%
+- Fill in the blank (one blank, all accepted variants listed): 5-10%
+
+RULES FOR EVERY QUESTION:
+- Four options for single-answer; never "all of the above" or "none of the above"
+- All options grammatically parallel and similar in length
+- Correct answer must not be visually longer than distractors
+- Distractors reflect realistic mistakes, not impossibilities
+- Level 3: scenario with misconfiguration, decision point, or troubleshooting situation
+- No gerunds opening a stem; no future tense
+- "Select" for UI interaction — never "click" or "tap"
+- UI labels bold, no quotation marks
+- Sentence-style capitalisation throughout
+- Second person in scenario stems; never "the user" or "the administrator"
+- Full product name on first mention — never NME or NMM
+- On-premises always hyphenated; multifactor authentication no hyphen
+- Sign in / sign out — never log in / log out
+
+OUTPUT FORMAT — use exactly this structure for every question:
+
+---
+**Q[n]. [Stem]**
+*Objective: [objective text] | Bloom: Level [1/2/3] ([Recall/Apply/Analyze])*
+
+a. [option]
+b. [option]
+c. [option]
+d. [option]
+
+Correct: [letter]) [text]
+---
+
+True/False format:
+---
+**Q[n]. [Statement]**
+*Objective: [objective] | Bloom: Level [1/2/3]*
+
+True / False
+
+Correct: [True or False]
+---
+
+Fill in the blank format:
+---
+**Q[n]. [Sentence with _______ ]**
+*Objective: [objective] | Bloom: Level [1/2/3]*
+
+Correct: [accepted answers separated by commas]
+---
+
+After all questions output exactly:
+
+## Pool summary
+Total: [n] | L1=[n] ([%]) L2=[n] ([%]) L3=[n] ([%]) | Single=[n] Select2=[n] T/F=[n] FITB=[n]
+
+## KB verification
+[List every verified claim and any SME flags]
+
+## Style compliance
+[Confirm all checks passed or list exceptions]`
+
+    default:
+      return ''
   }
 }
-
-// Audit block appended to every prompt
