@@ -527,6 +527,36 @@ export default function Home() {
 
   const textareaFields = ['topic', 'coursetitle', 'scope']
 
+  // Format ADDIE JSON for display in output panel
+  const formatAddieForDisplay = (text: string): string => {
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) return text
+      const data = JSON.parse(jsonMatch[0])
+      let out = '## ADDIE — ' + (data.outlineRows?.[0] ? 'Draft' : '') + '\n\n'
+      if (data.parentGoal) out += '**Parent goal**\n' + data.parentGoal + '\n\n'
+      if (data.audienceRoles) out += '**Audience**\n' + data.audienceRoles + '\n\n'
+      if (data.assumedKnowledge) out += '**Assumed knowledge**\n' + data.assumedKnowledge + '\n\n'
+      if (data.inScope) out += '**In scope**\n' + data.inScope + '\n\n'
+      if (data.outOfScope) out += '**Out of scope**\n' + data.outOfScope + '\n\n'
+      if (data.objectives?.length) out += '**Learning objectives**\n' + data.objectives.map((o: string) => '• ' + o).join('\n') + '\n\n'
+      if (data.coreConcepts?.length) out += '**Core concepts**\n' + data.coreConcepts.map((c: string) => '• ' + c).join('\n') + '\n\n'
+      if (data.outlineRows?.length) {
+        out += '**Course outline**\n'
+        data.outlineRows.forEach((r: {num: string, title: string, covers: string, media: string, kc: string}) => {
+          out += `${r.num}. ${r.title} | ${r.media} | KC: ${r.kc}\n   ${r.covers}\n`
+        })
+        out += '\n'
+      }
+      if (data.coreFlow) out += '**Core flow**\n' + data.coreFlow + '\n\n'
+      if (data.launchPlan) out += '**Launch plan**\n' + data.launchPlan + '\n\n'
+      if (data.auditNotes) out += '---\n**Quality audit**\n' + data.auditNotes + '\n'
+      return out
+    } catch {
+      return text
+    }
+  }
+
   const modeLabelMap: Record<DocumentMode, string> = {
     inspiration: 'Use as inspiration',
     adapt:       'Adapt and improve',
@@ -797,7 +827,7 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-              <div className="output-content" ref={outputRef}>{output}</div>
+              <div className="output-content" ref={outputRef}>{activeWorkflow === 'addie' && output ? formatAddieForDisplay(output) : output}</div>
             </div>
           )}
 
