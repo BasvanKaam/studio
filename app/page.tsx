@@ -143,6 +143,19 @@ export default function Home() {
   const [extraInstructions, setExtraInstructions] = useState<string>('')
   const [extracting, setExtracting] = useState(false)
   const [extractError, setExtractError] = useState<string>('')
+  const [cooldown, setCooldown] = useState(0)
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const startCooldown = (seconds: number) => {
+    if (cooldownRef.current) clearInterval(cooldownRef.current)
+    setCooldown(seconds)
+    cooldownRef.current = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) { clearInterval(cooldownRef.current!); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+  }
 
   const outputRef  = useRef<HTMLDivElement>(null)
   const reviewRef  = useRef<HTMLDivElement>(null)
@@ -322,6 +335,10 @@ export default function Home() {
       setPhases(prev => prev.map(p => p.status === 'active' ? { ...p, status: 'pending' } : p))
     } finally {
       setGenerating(false)
+      const cooldownSeconds: Record<string, number> = {
+        lesson: 30, addie: 45, videoscript: 30, questionpool: 60,
+      }
+      if (activeWorkflow) startCooldown(cooldownSeconds[activeWorkflow] || 30)
     }
   }
 
@@ -449,6 +466,7 @@ export default function Home() {
       setReviewOutput('Review failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
     } finally {
       setReviewing(false)
+      startCooldown(45)
     }
   }
 
@@ -484,6 +502,7 @@ export default function Home() {
       setCorrectedOutput('Apply failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
     } finally {
       setApplying(false)
+      startCooldown(30)
     }
   }
 
@@ -524,7 +543,7 @@ export default function Home() {
            d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   }
 
-  const canGenerate = !generating && !!workflow &&
+  const canGenerate = !generating && cooldown === 0 && !!workflow &&
     workflow.fields.filter(f => f.type === 'select').every(f => !!fields[f.id])
 
   const textareaFields = ['topic', 'scope']
@@ -745,6 +764,8 @@ export default function Home() {
               <button className="btn-generate" onClick={handleGenerate} disabled={!canGenerate}>
                 {generating ? (
                   <><span className="spinner" />Generating — this takes about 30 seconds…</>
+                ) : cooldown > 0 ? (
+                  <>⏳ Please wait {cooldown}s before generating again</>
                 ) : (
                   <><IconGenerate />Generate {workflow.title}</>
                 )}
