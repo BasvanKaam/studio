@@ -539,6 +539,100 @@ function extractOutlineRows(content: string): string[][] {
   return rows
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ADDIE CONTENT PARSER
+// Extracts content from Claude's generated ADDIE text into structured sections
+// ══════════════════════════════════════════════════════════════════════════════
+function parseAddieContent(content: string): Record<string, string[]> {
+  const lines = content.split('\n')
+  const sections: Record<string, string[]> = {}
+  let currentSection = ''
+  const buffer: string[] = []
+
+  const flush = () => {
+    if (currentSection && buffer.length > 0) {
+      sections[currentSection] = buffer
+        .filter(l => l.trim().length > 0)
+        .map(l => l.replace(/^[-*•]\s*/, '').replace(/^\d+\.\s*/, '').trim())
+    }
+  }
+
+  const sectionMap: Record<string, string> = {
+    'parent goal': 'parentGoal',
+    'parent goal:': 'parentGoal',
+    'audience': 'audience',
+    'audience —': 'audience',
+    'assumed knowledge': 'assumedKnowledge',
+    'in scope': 'inScope',
+    'out of scope': 'outOfScope',
+    'learning objectives': 'objectives',
+    'core concepts': 'coreConcepts',
+    'core flow': 'coreFlow',
+    'flow of the training': 'coreFlow',
+    'which lessons need a video': 'videosNeeded',
+    'who records': 'videoRecorder',
+    'knowledge check strategy': 'kcStrategy',
+    'target completion': 'completionRate',
+    'target assessment': 'assessmentScore',
+    'additional success': 'additionalMetrics',
+    'launch plan': 'launchPlan',
+    'first check-in': 'firstCheckin',
+    'next content review': 'nextReview',
+    'planned next': 'nextReview',
+    'what is working well': 'workingWell',
+    'what is not working': 'notWorking',
+    'what changes': 'changes',
+    'to-do': 'todo',
+  }
+
+  for (const line of lines) {
+    const lower = line.toLowerCase().replace(/[*#_]/g, '').trim()
+    
+    // Skip quality audit section
+    if (/quality audit/i.test(line)) break
+    
+    let matched = false
+    for (const [key, val] of Object.entries(sectionMap)) {
+      if (lower.startsWith(key)) {
+        flush()
+        buffer.length = 0
+        currentSection = val
+        // If content is on the same line after colon
+        const colonIdx = line.indexOf(':')
+        if (colonIdx > -1 && line.slice(colonIdx + 1).trim().length > 0) {
+          buffer.push(line.slice(colonIdx + 1).trim())
+        }
+        matched = true
+        break
+      }
+    }
+    
+    if (!matched && currentSection) {
+      // Skip phase banners and major headings
+      if (/^#{1,2}\s/.test(line)) {
+        // Check if this is a major section change
+        const lower2 = line.replace(/^#+\s*/, '').toLowerCase()
+        if (['analyze', 'design', 'develop', 'implement', 'examine', 'a —', 'd —', 'i —', 'e —'].some(s => lower2.startsWith(s))) {
+          // Don't flush, just continue — section headers don't end previous content
+        }
+      } else if (line.trim().length > 0) {
+        buffer.push(line)
+      }
+    }
+  }
+  flush()
+  return sections
+}
+
+function getSection(parsed: Record<string, string[]>, key: string): string[] {
+  return parsed[key] || []
+}
+
+function getSectionText(parsed: Record<string, string[]>, key: string): string {
+  return getSection(parsed, key).join(' ').trim()
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // ADDIE BUILDER
 // ══════════════════════════════════════════════════════════════════════════════
@@ -547,6 +641,9 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
   const product     = fields.product    || 'Nerdio Manager for Enterprise'
   const audience    = fields.audience   || 'IT admins / engineers'
   const author      = fields.author     || ''
+
+  // Parse Claude's generated content into structured sections
+  const parsed = parseAddieContent(content)
 
   const meta: [string, string][] = [
     ['Course title',          courseTitle],
@@ -562,82 +659,98 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
   ]
 
   const outRows = extractOutlineRows(content)
-  const title   = `ADDIE \u2014 ${courseTitle}`
+  const title   = `ADDIE — ${courseTitle}`
+
+  // Helper: wrap long text into lines for input fields
+  const toLines = (text: string): string[] => {
+    if (!text || text.trim().length === 0) return []
+    return text.split(/\n/).map(l => l.trim()).filter(l => l.length > 0)
+  }
 
   const structured: (Paragraph | Table)[] = [
-    // A
+    // A — ANALYZE
     phaseBanner('A', 'Analyze', 'Context, audience, and scope.', 'A'),
-    inputField('Parent goal', 'Why does this training exist? What business problem does it solve?', [], true),
+    inputField('Parent goal', 'Why does this training exist? What business problem does it solve?',
+      toLines(getSection(parsed, 'parentGoal').join('\n')), true),
     inputRow2([
-      { label: 'Audience \u2014 roles', hint: 'Who is this for?', examples: [audience] },
-      { label: 'Assumed knowledge', hint: 'What do they already know?', examples: [] },
+      { label: 'Audience — roles', hint: 'Who is this for?',
+        examples: getSection(parsed, 'audience').length > 0 ? getSection(parsed, 'audience') : [audience] },
+      { label: 'Assumed knowledge', hint: 'What do they already know?',
+        examples: getSection(parsed, 'assumedKnowledge') },
     ]),
     p([bld('Scope', 20, DARK_TEXT), new TextRun({ text: '   Optional', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 160, after: 40 } }),
     inputRow2([
-      { label: 'In scope',     hint: '', examples: [] },
-      { label: 'Out of scope', hint: '', examples: [] },
+      { label: 'In scope',     hint: '', examples: getSection(parsed, 'inScope') },
+      { label: 'Out of scope', hint: '', examples: getSection(parsed, 'outOfScope') },
     ]),
     sectionDiv('Learning objectives'),
     p([bld('By the end of this course, learners will be able to:', 20, DARK_TEXT)], { spacing: { before: 100, after: 40 } }),
-    inputField('', '', [], true, true),
-    inputField('Core concepts covered', 'Technologies, features, and terms this training introduces', [], false, true),
+    inputField('', '', getSection(parsed, 'objectives'), true, true),
+    inputField('Core concepts covered', 'Technologies, features, and terms this training introduces',
+      getSection(parsed, 'coreConcepts'), false, true),
     sectionDiv('Course outline'),
-    p([new TextRun({ text: 'Generated outline \u2014 review and update lesson titles and descriptions.', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 60, after: 100 } }),
+    p([new TextRun({ text: 'Generated from course content — review and update as needed.', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 60, after: 100 } }),
     outlineTable(outRows),
     sp(200),
 
-    // D Design
+    // D — DESIGN
     phaseBanner('D', 'Design', 'Sequence, media strategy, and assessment.', 'D'),
-    inputField('Core flow of the training', 'Why is the content in this order?', [], true, false, true),
+    inputField('Core flow of the training', 'Why is the content in this order?',
+      getSection(parsed, 'coreFlow'), true, false, true),
     inputRow2([
-      { label: 'Which lessons need a video?', hint: 'Names or notes', examples: [] },
-      { label: 'Who records the videos?',     hint: 'Name(s) or TBD', examples: [] },
+      { label: 'Which lessons need a video?', hint: 'Names or notes',
+        examples: getSection(parsed, 'videosNeeded') },
+      { label: 'Who records the videos?', hint: 'Name(s) or TBD',
+        examples: getSection(parsed, 'videoRecorder') },
     ]),
     inputRow2([
-      { label: 'Final assessment \u2014 questions', hint: 'Default: 20', examples: ['20'] },
+      { label: 'Final assessment — questions', hint: 'Default: 20', examples: ['20'] },
       { label: 'Pass threshold',                    hint: 'Default: 80%', examples: ['80%'] },
       { label: 'Retake attempts',                   hint: 'Default: 2',   examples: ['2'] },
     ]),
-    inputField('Knowledge check strategy', 'Types per lesson, or leave blank', []),
+    inputField('Knowledge check strategy', 'Types per lesson, or leave blank',
+      getSection(parsed, 'kcStrategy')),
     sectionDiv('Success measurement'),
     inputRow2([
-      { label: 'Target completion rate',  hint: '', examples: [] },
-      { label: 'Target assessment score', hint: '', examples: [] },
+      { label: 'Target completion rate',  hint: '', examples: getSection(parsed, 'completionRate') },
+      { label: 'Target assessment score', hint: '', examples: getSection(parsed, 'assessmentScore') },
     ]),
-    inputField('Additional success metrics', 'Leave blank if none', []),
+    inputField('Additional success metrics', 'Leave blank if none',
+      getSection(parsed, 'additionalMetrics')),
     pb(),
 
-    // D Develop
+    // D — DEVELOP
     phaseBanner('D', 'Develop', 'Assets to build and who owns each.', 'V'),
     p([new TextRun({ text: 'One row per lesson plus the final assessment.', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 120, after: 100 } }),
     assetTable([
-      ...outRows.map(r => [`Lesson ${r[0]} \u2014 ${r[1] || ''}`, r[3] || 'Text module', '', author]),
-      ['Final assessment \u2014 20-question pool', 'Quiz', 'SME review before publication.', author],
+      ...outRows.map(r => [`Lesson ${r[0]} — ${r[1] || ''}`, r[3] || 'Text module', '', author]),
+      ['Final assessment — 20-question pool', 'Quiz', 'SME review before publication.', author],
     ]),
     inputRow2([
-      { label: 'Reviewer(s)',        hint: 'Technical accuracy and style',  examples: [] },
+      { label: 'Reviewer(s)',         hint: 'Technical accuracy and style',  examples: [] },
       { label: 'Planning board link', hint: 'Asana / DevOps / spreadsheet', examples: [] },
     ]),
     pb(),
 
-    // I
+    // I — IMPLEMENT
     phaseBanner('I', 'Implement', 'Launch plan and Docebo configuration.', 'I'),
-    inputField('Launch plan', 'Where will this be published, and how will learners be informed?', [], true),
+    inputField('Launch plan', 'Where will this be published, and how will learners be informed?',
+      getSection(parsed, 'launchPlan'), true),
     sectionDiv('Docebo configuration'),
     sp(60),
     kvTable([
-      ['Course visibility',   'Public \u2014 available to all registered Nerdio University learners'],
+      ['Course visibility',   'Public — available to all registered Nerdio University learners'],
       ['Enrollment method',   'Self-enrollment'],
-      ['Certification',       `Yes \u2014 '${courseTitle}' certificate, valid for 24 months`],
+      ['Certification',       `Yes — '${courseTitle}' certificate, valid for 24 months`],
       ['Completion criteria', `All ${outRows.length} lessons viewed + final assessment passed at 80% or above`],
     ]),
     inputRow2([
-      { label: 'First check-in after launch',    hint: '', examples: [] },
-      { label: 'Planned next content review', hint: '', examples: [] },
+      { label: 'First check-in after launch',  hint: '', examples: getSection(parsed, 'firstCheckin') },
+      { label: 'Planned next content review',  hint: '', examples: getSection(parsed, 'nextReview') },
     ]),
     pb(),
 
-    // E
+    // E — EXAMINE
     phaseBanner('E', 'Examine', 'Complete after launch. Update with each version.', 'E'),
     inputField('What is working well?',         '', [], true),
     inputField('What is not working?',          '', [], true),
@@ -649,19 +762,13 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
     changelogTable(),
     sp(360),
     p([new TextRun({
-      text: `Nerdio L&D  \u2022  ${courseTitle}  \u2022  v1.0  \u2022  Based on Nerdio L&D Style Guide v2.0 (February 2026)`,
+      text: `Nerdio L&D  •  ${courseTitle}  •  v1.0  •  Based on Nerdio L&D Style Guide v2.0 (February 2026)`,
       font: 'Arial', size: 18, color: MID_GRAY, italics: true,
     })], {
       alignment: AlignmentType.CENTER,
       border: { top: { style: BorderStyle.SINGLE, size: 6, color: TEAL } },
       spacing: { before: 180, after: 0 },
     }),
-
-    // Generated content as reference
-    pb(),
-    h2('Generated content \u2014 for reference'),
-    p([new TextRun({ text: 'Use this content to fill in the input fields above.', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 60, after: 120 } }),
-    ...parseMarkdown(content),
   ]
 
   return new Document({
