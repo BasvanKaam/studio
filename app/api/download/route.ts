@@ -1111,6 +1111,195 @@ function buildVideoScriptDoc(content: string, fields: Record<string, string>): D
   })
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// QUESTION POOL BUILDER
+// ══════════════════════════════════════════════════════════════════════════════
+function buildQuestionPoolDoc(content: string, fields: Record<string, string>): Document {
+  const courseTitle   = fields.coursetitle || 'Question pool'
+  const product       = fields.product     || 'Nerdio Manager for Enterprise'
+  const audience      = fields.audience    || 'IT admins / engineers'
+  const difficulty    = fields.difficulty  || 'Intermediate'
+  const questionCount = fields.questioncount || ''
+  const date          = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  // Meta table
+  const metaTable = new Table({
+    width: { size: CW, type: WidthType.DXA },
+    columnWidths: [2200, CW - 2200],
+    rows: [
+      ['Course title', courseTitle],
+      ['Product', product],
+      ['Audience', audience],
+      ['Difficulty', difficulty],
+      ['Questions', questionCount],
+      ['Version', 'v1.0'],
+      ['Status', 'Draft'],
+      ['Generated', date],
+    ].map(([label, value], i) => new TableRow({
+      children: [
+        new TableCell({
+          borders: allB(BORDER_GRAY, 3),
+          width: { size: 2200, type: WidthType.DXA },
+          shading: { fill: i % 2 === 0 ? 'F2F2F2' : 'FFFFFF', type: ShadingType.CLEAR },
+          margins: { top: 80, bottom: 80, left: 160, right: 160 },
+          children: [new Paragraph({ children: [new TextRun({ text: label, font: 'Arial', size: 20, bold: true, color: '000000' })] })],
+        }),
+        new TableCell({
+          borders: allB(BORDER_GRAY, 3),
+          width: { size: CW - 2200, type: WidthType.DXA },
+          shading: { fill: i % 2 === 0 ? 'F2F2F2' : 'FFFFFF', type: ShadingType.CLEAR },
+          margins: { top: 80, bottom: 80, left: 160, right: 160 },
+          children: [new Paragraph({ children: [new TextRun({ text: value, font: 'Arial', size: 20, color: '000000' })] })],
+        }),
+      ],
+    })),
+  })
+
+  // Parse question pool content — render questions with correct answer highlighted
+  const body: (Paragraph | Table)[] = [
+    metaTable,
+    new Paragraph({ children: [], spacing: { before: 240, after: 0 } }),
+  ]
+
+  const lines = stripAudit(content).split('\n')
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // Question stem: **Q1. stem**
+    const qMatch = line.match(/^\*\*Q(\d+)\.\s+(.+?)\*\*\s*$/)
+    if (qMatch) {
+      // Question number + stem
+      body.push(new Paragraph({
+        children: [
+          new TextRun({ text: `Q${qMatch[1]}. `, font: 'Arial', size: 22, bold: true, color: '000000' }),
+          new TextRun({ text: qMatch[2], font: 'Arial', size: 22, bold: true, color: '000000' }),
+        ],
+        spacing: { before: 240, after: 60 },
+      }))
+      i++
+
+      // Objective/Bloom line (italic gray)
+      if (i < lines.length && lines[i].startsWith('*Objective:')) {
+        const objText = lines[i].replace(/\*/g, '').trim()
+        body.push(new Paragraph({
+          children: [new TextRun({ text: objText, font: 'Arial', size: 18, italics: true, color: '8C96A0' })],
+          spacing: { before: 0, after: 80 },
+        }))
+        i++
+      }
+
+      // Blank line
+      while (i < lines.length && lines[i].trim() === '') i++
+
+      // Answer options until Correct: line or ---
+      const options: { letter: string; text: string; isCorrect: boolean }[] = []
+      let correctLine = ''
+      let isTrueFalse = false
+      let isFITB = false
+
+      // Check for True/False
+      if (i < lines.length && lines[i].trim() === 'True / False') {
+        isTrueFalse = true
+        body.push(new Paragraph({
+          children: [new TextRun({ text: 'True / False', font: 'Arial', size: 22, color: '000000' })],
+          spacing: { before: 40, after: 40 },
+        }))
+        i++
+      } else {
+        // Regular options a/b/c/d or FITB
+        while (i < lines.length && !lines[i].startsWith('Correct:') && lines[i].trim() !== '---') {
+          const optMatch = lines[i].match(/^([a-d])\.\s+(.+)/)
+          if (optMatch) {
+            options.push({ letter: optMatch[1], text: optMatch[2], isCorrect: false })
+          } else if (lines[i].trim() !== '') {
+            // Could be FITB sentence continuation
+            isFITB = true
+          }
+          i++
+        }
+      }
+
+      // Correct line
+      if (i < lines.length && lines[i].startsWith('Correct:')) {
+        correctLine = lines[i].replace(/^Correct:\s*/, '').trim()
+        i++
+
+        // Mark correct options
+        const correctLetter = correctLine.split(')')[0].trim().toLowerCase()
+        options.forEach(opt => {
+          if (opt.letter === correctLetter) opt.isCorrect = true
+        })
+      }
+
+      // Render options
+      for (const opt of options) {
+        const runs: TextRun[] = [
+          new TextRun({ text: `${opt.letter}. ${opt.text}`, font: 'Arial', size: 22, color: '000000', highlight: opt.isCorrect ? 'green' : undefined }),
+        ]
+        body.push(new Paragraph({
+          children: runs,
+          spacing: { before: 40, after: 40 },
+          indent: { left: 360 },
+        }))
+      }
+
+      // Render correct answer line
+      if (correctLine) {
+        body.push(new Paragraph({
+          children: [new TextRun({ text: `Correct: ${correctLine}`, font: 'Arial', size: 22, bold: true, color: '000000', highlight: 'green' })],
+          spacing: { before: 80, after: 40 },
+        }))
+      }
+
+      continue
+    }
+
+    // Section headings: ## Pool summary / ## KB verification / ## Style compliance
+    if (line.startsWith('## ')) {
+      body.push(new Paragraph({
+        children: [new TextRun({ text: line.slice(3).trim(), font: 'Arial', size: 24, bold: true, color: '000000' })],
+        spacing: { before: 320, after: 80 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' } },
+      }))
+      i++
+      continue
+    }
+
+    // Horizontal rule --- (question separator)
+    if (line.trim() === '---') {
+      body.push(new Paragraph({
+        children: [],
+        border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'E0E0E0' } },
+        spacing: { before: 80, after: 80 },
+      }))
+      i++
+      continue
+    }
+
+    // Empty line
+    if (line.trim() === '') {
+      body.push(new Paragraph({ children: [new TextRun({ text: '', font: 'Arial', size: 22 })], spacing: { before: 40, after: 0 } }))
+      i++
+      continue
+    }
+
+    // Regular line
+    body.push(new Paragraph({
+      children: inlineRuns(line),
+      spacing: { before: 60, after: 60, line: 276, lineRule: 'auto' },
+    }))
+    i++
+  }
+
+  return new Document({
+    numbering: numbering(),
+    styles: styles(),
+    sections: [{ properties: pageProps(), children: body }],
+  })
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // SHARED CONFIG
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1154,6 +1343,9 @@ export async function POST(req: NextRequest) {
         break
       case 'videoscript':
         doc = buildVideoScriptDoc(content, fields || {})
+        break
+      case 'questionpool':
+        doc = buildQuestionPoolDoc(content, fields || {})
         break
       default:
         doc = buildLessonDoc(content, fields || {})
