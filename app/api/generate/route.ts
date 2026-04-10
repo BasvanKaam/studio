@@ -44,17 +44,20 @@ export async function POST(req: NextRequest) {
     }
 
     const isQuestionPool = workflowId === 'questionpool'
-    const maxTokens = isQuestionPool ? 12000 : 8000
+    const isAddie = workflowId === 'addie'
+    const maxTokens = isQuestionPool ? 12000 : isAddie ? 10000 : 8000
+    const useSystemPrompt = !isQuestionPool && !isAddie
+    const useTools = !isQuestionPool && !isAddie
 
     const requestBody: Record<string, unknown> = {
       model: 'claude-sonnet-4-20250514',
       max_tokens: maxTokens,
-      system: SYSTEM_PROMPT,
+      system: useSystemPrompt ? SYSTEM_PROMPT : '',
       messages: [{ role: 'user', content: userPrompt }],
       stream: true,
     }
 
-    if (!isQuestionPool) {
+    if (useTools) {
       requestBody.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }]
     }
 
