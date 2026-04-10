@@ -292,6 +292,10 @@ export default function Home() {
         if (done) break
         const chunk = decoder.decode(value, { stream: true })
         const cleanChunk = chunk.replace(/__SEARCHING__/g, '\n⟳ Searching Nerdio documentation\n')
+        // Show API errors visibly instead of silent fail
+        if (cleanChunk.includes('[ERROR:')) {
+          throw new Error(cleanChunk)
+        }
         fullText += cleanChunk
         chunkCount += cleanChunk.length
         const targetPhase = Math.min(Math.floor(chunkCount / phaseInterval), currentPhases.length - 1)
