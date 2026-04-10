@@ -17,9 +17,10 @@ type Phase = { label: string; status: 'pending' | 'active' | 'done' }
 type DocumentMode = 'inspiration' | 'adapt' | 'basis'
 
 const PHASES_BY_WORKFLOW: Record<WorkflowId, string[]> = {
-  lesson:      ['Retrieving style rules', 'Writing lesson content', 'Adding knowledge check', 'Finalising output'],
-  addie:       ['Retrieving style rules', 'Building Analyze section', 'Building Design section', 'Building Develop section', 'Building Implement & Examine', 'Finalising output'],
-  videoscript: ['Retrieving style rules', 'Writing voice-over intro', 'Writing screen recording script', 'Adding production notes'],
+  lesson:       ['Retrieving style rules', 'Writing lesson content', 'Adding knowledge check', 'Finalising output'],
+  addie:        ['Retrieving style rules', 'Building Analyze section', 'Building Design section', 'Building Develop section', 'Building Implement & Examine', 'Finalising output'],
+  videoscript:  ['Retrieving style rules', 'Writing voice-over intro', 'Writing screen recording script', 'Adding production notes'],
+  questionpool: ['Searching Nerdio KB', 'Extracting learning objectives', 'Generating questions', 'Running style audit', 'Finalising pool'],
 }
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
