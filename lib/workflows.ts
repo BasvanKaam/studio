@@ -87,13 +87,14 @@ export const workflows: Workflow[] = [
     id: 'questionpool',
     title: 'Question pool',
     description: 'Generate a complete, Bloom-aligned question pool for a Nerdio University course — multiple question types, KB-verified, style-compliant.',
-    icon: '❓',
+    icon: '🎯',
     fields: [
       { id: 'coursetitle', label: 'Course title', type: 'text', placeholder: 'e.g. Auto-scaling in Nerdio Manager for Enterprise', fullWidth: true },
-      { id: 'product', label: 'Product', type: 'select', options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP', 'Both', 'Other'] },
-      { id: 'audience', label: 'Target audience', type: 'select', options: ['IT admins / engineers', 'MSP partners / resellers', 'End users', 'Management / sales'] },
-      { id: 'difficulty', label: 'Course difficulty', type: 'select', options: ['Introductory', 'Intermediate', 'Advanced'] },
-      { id: 'questioncount', label: 'Number of questions', type: 'select', options: ['Minimum (10)', 'Medium (15–20)', 'Large (25+)', 'Claude to decide based on objectives'] },
+      { id: 'product', label: 'Product', type: 'select', options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP', 'Both'] },
+      { id: 'difficulty', label: 'Difficulty level', hint: 'Sets the Bloom distribution: Introductory = 60% L1 / 40% L2, Intermediate = 30/50/20%, Advanced = 15/40/45%', type: 'select', options: ['Introductory', 'Intermediate', 'Advanced'] },
+      { id: 'questioncount', label: 'Number of questions', type: 'select', options: ['10 questions', '15 questions', '20 questions', '25 questions', 'Claude to decide based on content'] },
+      { id: 'bloomoverride', label: 'Bloom distribution', hint: 'Leave on "Use difficulty default" to apply automatic distribution based on difficulty level above', type: 'select', options: ['Use difficulty default', 'More recall (L1 heavy)', 'More application (L2 heavy)', 'More analysis (L3 heavy)', 'Equal mix'] },
+      { id: 'qtypes', label: 'Question types to include', hint: 'Claude will mix all selected types. More variety = better pool.', type: 'select', options: ['All types (single answer, select two, true/false, fill in the blank)', 'Single answer + true/false only', 'Single answer only'] },
       { id: 'scope', label: 'Pool scope', type: 'select', options: ['Full course (multiple lessons)', 'Single lesson'] },
     ],
   },
@@ -211,9 +212,10 @@ Natural spoken language throughout. No "Now I'm going to show you." No filler ph
 
 Course title: ${fields.coursetitle}
 Product: ${fields.product}
-Audience: ${fields.audience}
 Difficulty level: ${fields.difficulty}
 Questions requested: ${fields.questioncount}
+Bloom distribution: ${fields.bloomoverride}
+Question types: ${fields.qtypes}
 Pool scope: ${fields.scope}
 
 MANDATORY FIRST STEP: Search the Nerdio Help Center before writing any questions.
@@ -223,16 +225,28 @@ MANDATORY FIRST STEP: Search the Nerdio Help Center before writing any questions
 - If lesson documents were uploaded, use them as the primary source
 - Flag unverifiable claims with: SME review required
 
-BLOOM DISTRIBUTION — apply strictly based on difficulty:
-Introductory: 60% L1 Recall, 40% L2 Apply, 0% L3
-Intermediate: 30% L1, 50% L2, 20% L3 Analyze
-Advanced: 15% L1, 40% L2, 45% L3
+BLOOM DISTRIBUTION:
+If "Use difficulty default": apply these distributions:
+- Introductory: 60% L1 Recall, 40% L2 Apply, 0% L3
+- Intermediate: 30% L1, 50% L2, 20% L3 Analyze
+- Advanced: 15% L1, 40% L2, 45% L3
+If "More recall (L1 heavy)": 70% L1, 25% L2, 5% L3
+If "More application (L2 heavy)": 20% L1, 60% L2, 20% L3
+If "More analysis (L3 heavy)": 15% L1, 30% L2, 55% L3
+If "Equal mix": 33% L1, 34% L2, 33% L3
 
-QUESTION TYPE MIX:
-- Single answer a/b/c/d: 60-70%
-- Select two (add "(Select two)" at end of stem): 10-15%
-- True/False: 10-15%
-- Fill in the blank (one blank, all accepted variants listed): 5-10%
+QUESTION TYPE MIX — based on selected types:
+If "All types": single answer a/b/c/d = 55-60%, select two = 15%, true/false = 15%, fill in the blank = 10%
+If "Single answer + true/false only": single answer = 70%, true/false = 30%
+If "Single answer only": 100% single answer a/b/c/d
+
+CORRECT ANSWER PLACEMENT — CRITICAL RULE:
+You must distribute correct answers randomly across all letter positions.
+- Count the total number of single-answer questions in the pool
+- Spread correct answers roughly evenly: approximately 25% each for a, b, c, d
+- Never place the correct answer in the same position for more than 3 consecutive questions
+- Before finalising, check your answer key. If more than 35% of answers are the same letter, redistribute.
+- Example for 20 questions: roughly 5 correct answers each at positions a, b, c, d
 
 RULES FOR EVERY QUESTION:
 - Four options for single-answer; never "all of the above" or "none of the above"
