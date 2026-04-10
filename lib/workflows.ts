@@ -218,12 +218,7 @@ Bloom distribution: ${fields.bloomoverride || 'Use difficulty default'}
 Question types: ${fields.qtypes}
 Pool scope: ${fields.scope}
 
-MANDATORY FIRST STEP: Search the Nerdio Help Center before writing any questions.
-- Nerdio Manager for Enterprise: search nmehelp.getnerdio.com
-- Nerdio Manager for MSP: search nmmhelp.getnerdio.com
-- Base all correct answers and distractors on verified KB content
-- If lesson documents were uploaded, use them as the primary source
-- Flag unverifiable claims with: SME review required
+If lesson documents were uploaded, use them as the primary and only source for all questions. Do not add content that is not in the lessons. If no documents are provided, use your knowledge of the product and topic.
 
 BLOOM DISTRIBUTION:
 If "Use difficulty default": apply these distributions:
