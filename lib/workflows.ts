@@ -207,7 +207,7 @@ Apply every Nerdio L&D style rule without exception.
 WORD COUNT: If a word limit is specified in the additional instructions or scope, treat it as a hard maximum. Stop adding content before reaching that limit. A lesson that is 10% under the limit is better than one that exceeds it.${AUDIT_INSTRUCTION}`
 
     case 'addie':
-      return `Create a complete ADDIE instructional design document.
+      return `Create a complete ADDIE instructional design document and return it as a single JSON object.
 
 Course title: ${fields.coursetitle}
 Product: ${fields.product}
@@ -225,7 +225,30 @@ Mandatory rules:
 - Write all sections in full — no placeholder text
 - Flag assumptions with ⚠
 
-Deliver the complete document with all sections fully written.${AUDIT_INSTRUCTION}`
+Return ONLY a valid JSON object with exactly these fields — no markdown, no explanation, no backticks:
+{
+  "parentGoal": "full text of the parent goal",
+  "audienceRoles": "who this is for",
+  "assumedKnowledge": "what they already know",
+  "inScope": "what is in scope",
+  "outOfScope": "what is out of scope",
+  "objectives": ["objective 1", "objective 2", "objective 3"],
+  "coreConcepts": ["concept 1", "concept 2"],
+  "outlineRows": [
+    { "num": "1", "title": "lesson title", "covers": "what it covers", "media": "Text", "kc": "No" }
+  ],
+  "coreFlow": "explanation of the pedagogical sequence",
+  "videosNeeded": "which lessons need video",
+  "videoRecorder": "who records",
+  "kcStrategy": "knowledge check strategy",
+  "completionRate": "target completion rate",
+  "assessmentScore": "target assessment score",
+  "additionalMetrics": "additional success metrics",
+  "launchPlan": "launch plan details",
+  "firstCheckin": "first check-in after launch",
+  "nextReview": "planned next content review",
+  "auditNotes": "KB verification and SME flags"
+}`
 
     case 'videoscript':
       return `Write a complete Nerdio University video script.
