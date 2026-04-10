@@ -91,11 +91,11 @@ export const workflows: Workflow[] = [
     fields: [
       { id: 'coursetitle', label: 'Course title', type: 'text', placeholder: 'e.g. Auto-scaling in Nerdio Manager for Enterprise', fullWidth: true },
       { id: 'product', label: 'Product', type: 'select', options: ['Nerdio Manager for Enterprise', 'Nerdio Manager for MSP', 'Both'] },
-      { id: 'difficulty', label: 'Difficulty level', hint: 'Sets the Bloom distribution: Introductory = 60% L1 / 40% L2, Intermediate = 30/50/20%, Advanced = 15/40/45%', type: 'select', options: ['Introductory', 'Intermediate', 'Advanced'] },
-      { id: 'questioncount', label: 'Number of questions', type: 'select', options: ['10 questions', '15 questions', '20 questions', '25 questions', 'Claude to decide based on content'] },
-      { id: 'bloomoverride', label: 'Bloom distribution', hint: 'Leave on "Use difficulty default" to apply automatic distribution based on difficulty level above', type: 'select', options: ['Use difficulty default', 'More recall (L1 heavy)', 'More application (L2 heavy)', 'More analysis (L3 heavy)', 'Equal mix'] },
-      { id: 'qtypes', label: 'Question types to include', hint: 'Claude will mix all selected types. More variety = better pool.', type: 'select', options: ['All types (single answer, select two, true/false, fill in the blank)', 'Single answer + true/false only', 'Single answer only'] },
-      { id: 'scope', label: 'Pool scope', type: 'select', options: ['Full course (multiple lessons)', 'Single lesson'] },
+      { id: 'difficulty', label: 'Difficulty level (sets Bloom distribution)', type: 'select', options: ['Introductory — 60% L1 / 40% L2', 'Intermediate — 30% L1 / 50% L2 / 20% L3', 'Advanced — 15% L1 / 40% L2 / 45% L3'] },
+      { id: 'questioncount', label: 'Number of questions', type: 'select', options: ['10', '15', '20', '25', 'Claude to decide'] },
+      { id: 'bloomoverride', label: 'Bloom override', type: 'select', options: ['Use difficulty default', 'More recall (L1 heavy)', 'More application (L2 heavy)', 'More analysis (L3 heavy)', 'Equal mix'] },
+      { id: 'qtypes', label: 'Question types', type: 'select', options: ['All types — single answer, select two, true/false, fill in the blank', 'Single answer + true/false only', 'Single answer only'] },
+      { id: 'scope', label: 'Pool scope', type: 'select', options: ['Full course', 'Single lesson'] },
     ],
   },
 ]
