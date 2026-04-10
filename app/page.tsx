@@ -526,7 +526,7 @@ export default function Home() {
   const canGenerate = !generating && !!workflow &&
     workflow.fields.filter(f => f.type === 'select').every(f => !!fields[f.id])
 
-  const textareaFields = ['topic', 'coursetitle', 'scope']
+  const textareaFields = ['topic', 'scope']
 
   // Format ADDIE JSON for display in output panel
   const formatAddieForDisplay = (text: string): string => {
@@ -636,7 +636,7 @@ export default function Home() {
                         value={fields[field.id] || ''}
                         onChange={e => handleFieldChange(field.id, e.target.value)}
                         disabled={generating}
-                        rows={field.id === 'scope' ? 4 : 3}
+                        rows={field.id === 'scope' ? 4 : field.id === 'topic' ? 3 : 2}
                       />
                     ) : (
                       <input
