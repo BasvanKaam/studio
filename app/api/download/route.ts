@@ -268,6 +268,122 @@ function inlineRuns(text: string): TextRun[] {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// CLEAN MARKDOWN PARSER — for lesson and video script (no branded boxes)
+// ══════════════════════════════════════════════════════════════════════════════
+function stripAudit(text: string): string {
+  // Remove Quality audit section and Style compliance note
+  return text
+    .replace(/## Quality audit[\s\S]*/i, '')
+    .replace(/\*\*Style compliance note:\*\*[\s\S]*/i, '')
+    .replace(/\*\*Style compliance summary:\*\*[\s\S]*/i, '')
+    .replace(/Quality audit[\s\S]*/i, (m) => m.startsWith('Quality audit') ? '' : m)
+    .trim()
+}
+
+function parseClean(markdown: string): (Paragraph | Table)[] {
+  const cleaned = stripAudit(markdown)
+  const lines = cleaned.split('\n')
+  const result: (Paragraph | Table)[] = []
+
+  for (const line of lines) {
+    // H1
+    if (line.startsWith('# ')) {
+      result.push(new Paragraph({
+        children: [new TextRun({ text: line.slice(2).trim(), font: 'Arial', size: 28, bold: true, color: '000000' })],
+        spacing: { before: 240, after: 120 },
+      }))
+      continue
+    }
+    // H2
+    if (line.startsWith('## ')) {
+      result.push(new Paragraph({
+        children: [new TextRun({ text: line.slice(3).trim(), font: 'Arial', size: 24, bold: true, color: '000000' })],
+        spacing: { before: 200, after: 80 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' } },
+      }))
+      continue
+    }
+    // H3
+    if (line.startsWith('### ')) {
+      result.push(new Paragraph({
+        children: [new TextRun({ text: line.slice(4).trim(), font: 'Arial', size: 22, bold: true, color: '000000' })],
+        spacing: { before: 160, after: 60 },
+      }))
+      continue
+    }
+    // Horizontal rule
+    if (line.trim() === '---') {
+      result.push(new Paragraph({
+        children: [],
+        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' } },
+        spacing: { before: 120, after: 120 },
+      }))
+      continue
+    }
+    // Bullet
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      result.push(new Paragraph({
+        numbering: { reference: 'bullets', level: 0 },
+        children: inlineRuns(line.slice(2)),
+        spacing: { before: 40, after: 40, line: 276, lineRule: 'auto' },
+      }))
+      continue
+    }
+    // Numbered list
+    if (/^\d+\.\s/.test(line)) {
+      result.push(new Paragraph({
+        numbering: { reference: 'numbers', level: 0 },
+        children: inlineRuns(line.replace(/^\d+\.\s/, '')),
+        spacing: { before: 40, after: 40, line: 276, lineRule: 'auto' },
+      }))
+      continue
+    }
+    // Note / In practice / Think callouts — render as simple indented paragraph
+    const noteM     = line.match(/^\*{0,2}Note:\*{0,2}\s*(.+)/i)
+    const practiceM = line.match(/^\*{0,2}In practice:\*{0,2}\s*(.+)/i)
+    const analogyM  = line.match(/^\*{0,2}Think of it this way:\*{0,2}\s*(.+)/i)
+    if (noteM) {
+      result.push(new Paragraph({
+        children: [new TextRun({ text: 'Note: ', font: 'Arial', size: 22, bold: true, color: '000000' }), ...inlineRuns(noteM[1])],
+        spacing: { before: 100, after: 100, line: 276, lineRule: 'auto' },
+        indent: { left: 720 },
+        border: { left: { style: BorderStyle.SINGLE, size: 12, color: 'AAAAAA' } },
+      }))
+      continue
+    }
+    if (practiceM) {
+      result.push(new Paragraph({
+        children: [new TextRun({ text: 'In practice: ', font: 'Arial', size: 22, bold: true, color: '000000' }), ...inlineRuns(practiceM[1])],
+        spacing: { before: 100, after: 100, line: 276, lineRule: 'auto' },
+        indent: { left: 720 },
+        border: { left: { style: BorderStyle.SINGLE, size: 12, color: 'AAAAAA' } },
+      }))
+      continue
+    }
+    if (analogyM) {
+      result.push(new Paragraph({
+        children: [new TextRun({ text: 'Think of it this way: ', font: 'Arial', size: 22, bold: true, color: '000000' }), ...inlineRuns(analogyM[1])],
+        spacing: { before: 100, after: 100, line: 276, lineRule: 'auto' },
+        indent: { left: 720 },
+        border: { left: { style: BorderStyle.SINGLE, size: 12, color: 'AAAAAA' } },
+      }))
+      continue
+    }
+    // Empty line
+    if (line.trim() === '') {
+      result.push(new Paragraph({ children: [new TextRun({ text: '', font: 'Arial', size: 22 })], spacing: { before: 40, after: 0 } }))
+      continue
+    }
+    // Regular paragraph
+    result.push(new Paragraph({
+      children: inlineRuns(line),
+      spacing: { before: 80, after: 80, line: 276, lineRule: 'auto' },
+    }))
+  }
+  return result
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // LESSON BUILDER
 // ══════════════════════════════════════════════════════════════════════════════
 function buildLessonDoc(content: string, fields: Record<string, string>): Document {
@@ -275,32 +391,48 @@ function buildLessonDoc(content: string, fields: Record<string, string>): Docume
   const product = fields.product || 'Nerdio Manager'
   const level   = fields.level || 'Intermediate'
   const lessonN = fields.lessonNumber || ''
-  const kcVal   = lessonN.includes('1 \u2014') || lessonN.includes('2 \u2014') ? 'No' : 'Yes'
+  const kcVal   = lessonN.includes('1 —') || lessonN.includes('2 —') ? 'No' : 'Yes'
+  const date    = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 
-  const meta: [string, string][] = [
-    ['Product',        product],
-    ['Topic',          topic],
-    ['Audience level', level],
-    ['Lesson',         lessonN],
-    ['KC',             kcVal],
-    ['Version',        'v1.0'],
-    ['Status',         'Draft'],
-    ['Generated',      new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })],
-  ]
+  // Simple meta table at top of document
+  const metaTable = new Table({
+    width: { size: CW, type: WidthType.DXA },
+    columnWidths: [2200, CW - 2200],
+    rows: [
+      ['Product', product], ['Topic', topic], ['Audience level', level],
+      ['Lesson', lessonN], ['KC', kcVal], ['Version', 'v1.0'],
+      ['Status', 'Draft'], ['Generated', date],
+    ].map(([label, value], i) => new TableRow({
+      children: [
+        new TableCell({
+          borders: allB(BORDER_GRAY, 3),
+          width: { size: 2200, type: WidthType.DXA },
+          shading: { fill: i % 2 === 0 ? 'F2F2F2' : 'FFFFFF', type: ShadingType.CLEAR },
+          margins: { top: 80, bottom: 80, left: 160, right: 160 },
+          children: [new Paragraph({ children: [new TextRun({ text: label, font: 'Arial', size: 20, bold: true, color: '000000' })] })],
+        }),
+        new TableCell({
+          borders: allB(BORDER_GRAY, 3),
+          width: { size: CW - 2200, type: WidthType.DXA },
+          shading: { fill: i % 2 === 0 ? 'F2F2F2' : 'FFFFFF', type: ShadingType.CLEAR },
+          margins: { top: 80, bottom: 80, left: 160, right: 160 },
+          children: [new Paragraph({ children: [new TextRun({ text: value, font: 'Arial', size: 20, color: '000000' })] })],
+        }),
+      ],
+    })),
+  })
 
-  const title = `Lesson \u2014 ${topic}`
   return new Document({
     numbering: numbering(),
     styles: styles(),
-    sections: [
-      { properties: pageProps(), children: [...coverPage('Lesson', topic, meta)] },
-      {
-        properties: pageProps(),
-        headers: { default: makeHeader(title) },
-        footers: { default: makeFooter(title) },
-        children: parseMarkdown(content),
-      },
-    ],
+    sections: [{
+      properties: pageProps(),
+      children: [
+        metaTable,
+        new Paragraph({ children: [], spacing: { before: 240, after: 0 } }),
+        ...parseClean(content),
+      ],
+    }],
   })
 }
 
@@ -934,68 +1066,48 @@ function buildVideoScriptDoc(content: string, fields: Record<string, string>): D
   const product  = fields.product  || 'Nerdio Manager'
   const format   = fields.format   || 'Voice-over intro + screen recording'
   const level    = fields.level    || 'Intermediate'
-  const duration = fields.duration || '5\u20138 minutes'
+  const duration = fields.duration || '5–8 minutes'
+  const date     = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 
-  const meta: [string, string][] = [
-    ['Product',    product],
-    ['Topic',      topic],
-    ['Format',     format],
-    ['Audience',   level],
-    ['Duration',   duration],
-    ['Version',    'v1.0'],
-    ['Status',     'Draft'],
-    ['Generated',  new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })],
-  ]
-
-  const parsedTopics = extractTopics(content)
-  const title        = `Video Script \u2014 ${topic}`
-
-  const body: (Paragraph | Table)[] = [
-    h2('Part 1 \u2014 Voice-over intro'),
-    p([new TextRun({ text: 'No screen. Spoken to camera or as voice-over. Target: under 60 seconds.', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 60, after: 120 } }),
-    ...topicBlock('Introduction', [
-      `Welcome to this ${product} video on ${topic}.`,
-      `In this video, you'll learn ${parsedTopics.length > 0 ? parsedTopics.map(t => t.title).join(', ') : 'the key concepts and steps'}.`,
-      "By the end, you'll be able to apply this in your own environment.",
-    ]),
-    h2('Part 2 \u2014 Screen recording'),
-    p([new TextRun({ text: 'Record in Nerdio Manager. Cover these topics in sequence. Exact wording is your choice.', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 60, after: 120 } }),
-    ...(parsedTopics.length > 0
-      ? parsedTopics.flatMap(t => topicBlock(t.title, t.points, t.notes))
-      : parseMarkdown(content)
-    ),
-    h2('Production notes'),
-    productionNotesTable([
-      ['Format',             format],
-      ['Estimated duration', duration],
-      ['Audience level',     level],
-      ['Tone',               'Warm, direct, technically precise. No filler phrases.'],
-      ['Pacing',             'Natural speech pace. Pause between topics.'],
-      ['KB links',           `nmehelp.getnerdio.com \u2014 search: ${topic}`],
-    ]),
-    sp(200),
-    p([new TextRun({
-      text: `Nerdio L&D  \u2022  Video Script \u2014 ${topic}  \u2022  v1.0  \u2022  Draft for review`,
-      font: 'Arial', size: 18, color: MID_GRAY, italics: true,
-    })], {
-      alignment: AlignmentType.CENTER,
-      border: { top: { style: BorderStyle.SINGLE, size: 6, color: TEAL } },
-      spacing: { before: 180, after: 0 },
-    }),
-  ]
+  // Simple meta table
+  const metaTable = new Table({
+    width: { size: CW, type: WidthType.DXA },
+    columnWidths: [2200, CW - 2200],
+    rows: [
+      ['Product', product], ['Topic', topic], ['Format', format],
+      ['Audience', level], ['Duration', duration], ['Version', 'v1.0'],
+      ['Status', 'Draft'], ['Generated', date],
+    ].map(([label, value], i) => new TableRow({
+      children: [
+        new TableCell({
+          borders: allB(BORDER_GRAY, 3),
+          width: { size: 2200, type: WidthType.DXA },
+          shading: { fill: i % 2 === 0 ? 'F2F2F2' : 'FFFFFF', type: ShadingType.CLEAR },
+          margins: { top: 80, bottom: 80, left: 160, right: 160 },
+          children: [new Paragraph({ children: [new TextRun({ text: label, font: 'Arial', size: 20, bold: true, color: '000000' })] })],
+        }),
+        new TableCell({
+          borders: allB(BORDER_GRAY, 3),
+          width: { size: CW - 2200, type: WidthType.DXA },
+          shading: { fill: i % 2 === 0 ? 'F2F2F2' : 'FFFFFF', type: ShadingType.CLEAR },
+          margins: { top: 80, bottom: 80, left: 160, right: 160 },
+          children: [new Paragraph({ children: [new TextRun({ text: value, font: 'Arial', size: 20, color: '000000' })] })],
+        }),
+      ],
+    })),
+  })
 
   return new Document({
     numbering: numbering(),
     styles: styles(),
-    sections: [
-      { properties: pageProps(), children: [...coverPage('Video Script', topic, meta)] },
-      {
-        properties: pageProps(),
-        headers: { default: makeHeader(title) },
-        footers: { default: makeFooter(title) },
-        children: body,
-      },
-    ],
+    sections: [{
+      properties: pageProps(),
+      children: [
+        metaTable,
+        new Paragraph({ children: [], spacing: { before: 240, after: 0 } }),
+        ...parseClean(content),
+      ],
+    }],
   })
 }
 
