@@ -158,27 +158,36 @@ Mandatory rules:
 
 Return ONLY a valid JSON object with exactly these fields — no markdown, no explanation, no backticks:
 {
-  "parentGoal": "full text of the parent goal",
-  "audienceRoles": "who this is for",
-  "assumedKnowledge": "what they already know",
-  "inScope": "what is in scope",
-  "outOfScope": "what is out of scope",
-  "objectives": ["objective 1", "objective 2", "objective 3"],
-  "coreConcepts": ["concept 1", "concept 2"],
+  "parentGoal": "full text of the parent goal — 3 to 6 sentences describing the business problem",
+  "audienceRoles": "who this training is for — one or two sentences",
+  "assumedKnowledge": "what learners already know — one or two sentences",
+  "inScope": "comma-separated list of topics covered",
+  "outOfScope": "comma-separated list of topics not covered",
+  "objectives": ["objective 1 using Bloom verb", "objective 2", "objective 3", "objective 4 maximum"],
+  "coreConcepts": ["concept or term 1", "concept or term 2"],
+  "outlineNote": "one sentence of italic context shown above the outline table, e.g. 'Four lessons. Lessons 1 and 2 are conceptual (no knowledge check). Lessons 3 and 4 are procedural and include a knowledge check.'",
   "outlineRows": [
-    { "num": "1", "title": "lesson title", "covers": "what it covers", "media": "Text", "kc": "No" }
+    { "num": "1", "title": "Introduction to this course", "covers": "course overview, audience, prerequisites, what to expect, and how this course fits into the Nerdio Manager learning path", "media": "Text", "kc": "No" },
+    { "num": "2", "title": "[Topic] concepts and architecture", "covers": "core concepts and terminology before any configuration", "media": "Text", "kc": "No" }
   ],
-  "coreFlow": "explanation of the pedagogical sequence",
-  "videosNeeded": "which lessons need video",
-  "videoRecorder": "who records",
-  "kcStrategy": "knowledge check strategy",
-  "completionRate": "target completion rate",
-  "assessmentScore": "target assessment score",
-  "additionalMetrics": "additional success metrics",
-  "launchPlan": "launch plan details",
-  "firstCheckin": "first check-in after launch",
-  "nextReview": "planned next content review",
-  "auditNotes": "KB verification and SME flags"
+  "coreFlow": ["pedagogical reason for lesson 1", "reason for lesson 2", "reason for lesson 3"],
+  "videosNeeded": "which lessons need a video, e.g. Lessons 3 and 4",
+  "videoRecorder": "TBD",
+  "assessmentQuestions": "10 for short courses (4 or fewer lessons), 20 for full courses",
+  "passThreshold": "80%",
+  "retakeAttempts": "2",
+  "kcStrategy": "one sentence per lesson describing the knowledge check type and topic",
+  "completionRate": "e.g. 75% of enrolled learners complete all lessons within 30 days of enrollment",
+  "assessmentScore": "e.g. average score of 80% or above across all completions",
+  "additionalMetrics": "one specific metric linked to business impact, or leave blank",
+  "assetList": [
+    { "lesson": "Lesson 1 — Introduction to this course", "type": "Text module", "notes": "Conceptual overview. No screenshots required. Link to prerequisite courses in the Nerdio University learning path.", "owner": "TBD" },
+    { "lesson": "Final assessment — [N]-question pool", "type": "Quiz", "notes": "Aligned to all lesson objectives. SME to review for technical accuracy before publication.", "owner": "TBD" }
+  ],
+  "launchPlan": ["Publish to Nerdio University under the relevant Nerdio Manager learning path.", "Announce via the Nerdio Community forum and the monthly L&D newsletter.", "Send email notification to learners who have completed related courses in the past 12 months.", "Share a course promo slide in relevant internal Teams channels."],
+  "firstCheckin": "e.g. weekly for the first four weeks, then monthly",
+  "nextReview": "e.g. Q4 2026 — aligned with next Nerdio Manager for Enterprise release cycle",
+  "auditNotes": "KB verification results and SME flags"
 }`
 
     case 'videoscript':
