@@ -58,7 +58,7 @@ const LINE_SPACING = { line: 264, lineRule: 'auto' as const }
 const tx  = (text: string, opts: Record<string, unknown> = {}) =>
   new TextRun({ text, font: 'Arial', size: 22, color: DARK_TEXT, ...opts })
 const ex  = (text: string) =>
-  new TextRun({ text, font: 'Arial', size: 21, color: EX_COLOR })
+  new TextRun({ text, font: 'Arial', size: 21, color: EX_COLOR, italics: true })
 const bld = (text: string, sz = 22, color = DARK_TEXT) =>
   new TextRun({ text, font: 'Arial', size: sz, bold: true, color })
 
@@ -480,13 +480,13 @@ function phaseBanner(letter: string, title: string, subtitle: string, key: Phase
   })
 }
 
-function inputField(label: string, hint: string, exLines: string[] = [], tall = false, bullets = false, numbers = false): Table {
+function inputField(label: string, hint: string, exLines: string[] = [], tall = false, bullets = false, numbers = false, numRef = 'numbers'): Table {
   const INPUT_H = tall ? 1320 : 480
   const boxChildren = exLines.length > 0
     ? bullets
       ? exLines.map(line => new Paragraph({ numbering: { reference: 'bullets', level: 0 }, children: [ex(line)], spacing: { before: 20, after: 20, ...LINE_SPACING } }))
       : numbers
-        ? exLines.map(line => new Paragraph({ numbering: { reference: 'numbers', level: 0 }, children: [ex(line)], spacing: { before: 20, after: 20, ...LINE_SPACING } }))
+        ? exLines.map(line => new Paragraph({ numbering: { reference: numRef, level: 0 }, children: [ex(line)], spacing: { before: 20, after: 20, ...LINE_SPACING } }))
         : exLines.map(line => new Paragraph({ children: [ex(line)], spacing: { before: 0, after: 0, ...LINE_SPACING } }))
     : [new Paragraph({ children: [ex('')], spacing: { before: 0, after: 0 } })]
 
@@ -840,25 +840,30 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
       { label: 'Assumed knowledge', hint: 'What do they already know?',
         examples: gf('assumedKnowledge', 'assumedKnowledge') },
     ]),
-    p([bld('Scope', 20, DARK_TEXT), new TextRun({ text: '   Optional', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 160, after: 40 } }),
+    p([bld('Scope', 20, DARK_TEXT), new TextRun({ text: '   Optional — leave blank if scope is obvious', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 160, after: 40 } }),
     inputRow2([
       { label: 'In scope',     hint: '', examples: gf('inScope', 'inScope') },
       { label: 'Out of scope', hint: '', examples: gf('outOfScope', 'outOfScope') },
     ]),
     sectionDiv('Learning objectives'),
-    p([bld('By the end of this course, learners will be able to:', 20, DARK_TEXT)], { spacing: { before: 100, after: 40 } }),
+    p([bld('By the end of this training, learners will be able to:', 20, DARK_TEXT)], { spacing: { before: 100, after: 40 } }),
     inputField('', '', gf('objectives', 'objectives'), true, true),
     inputField('Core concepts covered', 'Technologies, features, and terms this training introduces',
       gf('coreConcepts', 'coreConcepts'), false, true),
     sectionDiv('Course outline'),
-    p([new TextRun({ text: 'Generated from course content — review and update as needed.', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 60, after: 100 } }),
+    p([new TextRun({ text: g('outlineNote') || 'Review and update as needed.', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 60, after: 100 } }),
     outlineTable(outRows),
     sp(200),
 
     // D — DESIGN
     phaseBanner('D', 'Design', 'Sequence, media strategy, and assessment.', 'D'),
     inputField('Core flow of the training', 'Why is the content in this order?',
-      gf('coreFlow', 'coreFlow').length > 0 ? gf('coreFlow', 'coreFlow') : (g('coreFlow') ? [g('coreFlow')] : []), true, false, true),
+      (() => {
+        const arr = ga('coreFlow')
+        if (arr.length > 0) return arr
+        const str = g('coreFlow')
+        return str ? str.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0) : []
+      })(), true, false, true),
     inputRow2([
       { label: 'Which lessons need a video?', hint: 'Names or notes',
         examples: gf('videosNeeded', 'videosNeeded') },
@@ -866,9 +871,9 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
         examples: gf('videoRecorder', 'videoRecorder') },
     ]),
     inputRow2([
-      { label: 'Final assessment — questions', hint: 'Default: 20', examples: ['20'] },
-      { label: 'Pass threshold',                    hint: 'Default: 80%', examples: ['80%'] },
-      { label: 'Retake attempts',                   hint: 'Default: 2',   examples: ['2'] },
+      { label: 'Final assessment — questions', hint: 'Default: 20', examples: g('assessmentQuestions') ? [g('assessmentQuestions')] : ['20'] },
+      { label: 'Pass threshold',               hint: 'Default: 80%', examples: g('passThreshold')      ? [g('passThreshold')]      : ['80%'] },
+      { label: 'Retake attempts',              hint: 'Default: 2',   examples: g('retakeAttempts')     ? [g('retakeAttempts')]     : ['2'] },
     ]),
     inputField('Knowledge check strategy', 'Types per lesson, or leave blank',
       gf('kcStrategy', 'kcStrategy')),
@@ -881,13 +886,17 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
       gf('additionalMetrics', 'additionalMetrics')),
     pb(),
 
-    // D — DEVELOP
     phaseBanner('D', 'Develop', 'Assets to build and who owns each.', 'V'),
     p([new TextRun({ text: 'One row per lesson plus the final assessment.', font: 'Arial', size: 18, color: MID_GRAY, italics: true })], { spacing: { before: 120, after: 100 } }),
-    assetTable([
-      ...outRows.map(r => [`Lesson ${r[0]} — ${r[1] || ''}`, r[3] || 'Text module', '', author]),
-      ['Final assessment — 20-question pool', 'Quiz', 'SME review before publication.', author],
-    ]),
+    assetTable(
+      Array.isArray(json['assetList'])
+        ? (json['assetList'] as Array<{lesson?: string, type?: string, notes?: string, owner?: string}>)
+            .map(r => [r.lesson || '', r.type || '', r.notes || '', r.owner || 'TBD'])
+        : [
+            ...outRows.map(r => [`Lesson ${r[0]} — ${r[1] || ''}`, r[3] || 'Text module', '', 'TBD']),
+            [`Final assessment — ${g('assessmentQuestions') || '20'}-question pool`, 'Quiz', 'SME review before publication.', 'TBD'],
+          ]
+    ),
     inputRow2([
       { label: 'Reviewer(s)',         hint: 'Technical accuracy and style',  examples: [] },
       { label: 'Planning board link', hint: 'Asana / DevOps / spreadsheet', examples: [] },
@@ -897,7 +906,12 @@ function buildAddieDoc(content: string, fields: Record<string, string>): Documen
     // I — IMPLEMENT
     phaseBanner('I', 'Implement', 'Launch plan and Docebo configuration.', 'I'),
     inputField('Launch plan', 'Where will this be published, and how will learners be informed?',
-      gf('launchPlan', 'launchPlan').length > 0 ? gf('launchPlan', 'launchPlan') : (g('launchPlan') ? [g('launchPlan')] : []), true),
+      (() => {
+        const arr = ga('launchPlan')
+        if (arr.length > 0) return arr
+        const str = g('launchPlan')
+        return str ? str.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0) : []
+      })(), true, false, true, 'numbers-launch'),
     sectionDiv('Docebo configuration'),
     sp(60),
     kvTable([
@@ -1391,6 +1405,7 @@ function numbering() {
     config: [
       { reference: 'bullets', levels: [{ level: 0, format: LevelFormat.BULLET, text: '\u2022', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }] },
       { reference: 'numbers', levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }] },
+      { reference: 'numbers-launch', levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }] },
     ],
   }
 }
